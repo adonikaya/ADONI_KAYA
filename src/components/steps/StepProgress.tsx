@@ -71,8 +71,8 @@ export const StepProgress: React.FC<StepProgressProps> = ({ currentStep, onStepC
                       : 'text-gray-400'
                   }`}
                 >
-                  <span className="hidden md:inline">{step.label}</span>
-                  <span className="md:hidden">{step.shortLabel}</span>
+                  <span className="hidden lg:inline">{step.label}</span>
+                  <span className="lg:hidden">{step.shortLabel}</span>
                 </span>
               </button>
             );
@@ -82,3 +82,4 @@ export const StepProgress: React.FC<StepProgressProps> = ({ currentStep, onStepC
     </div>
   );
 };
+

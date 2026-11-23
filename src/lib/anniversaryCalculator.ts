@@ -9,39 +9,44 @@ export interface AnniversaryResult {
   isCompleted: boolean;
 }
 
-const GUJARATI_MONTH_ORDINALS: Record<number, string> = {
+export const GUJARATI_MONTH_ORDINALS: Record<number, string> = {
   1: 'પ્રથમ માસિક શ્રદ્ધાંજલિ',
-  2: 'દ્વિતીય માસિક શ્રદ્ધાંજલિ',
-  3: 'તૃતીય માસિક શ્રદ્ધાંજલિ',
-  4: 'ચતુર્થ માસિક શ્રદ્ધાંજલિ',
-  5: 'પંચમ માસિક શ્રદ્ધાંજલિ',
+  2: 'બીજી માસિક શ્રદ્ધાંજલિ',
+  3: 'ત્રીજી માસિક શ્રદ્ધાંજલિ',
+  4: 'ચોથી માસિક શ્રદ્ધાંજલિ',
+  5: 'પાંચમી માસિક શ્રદ્ધાંજલિ',
   6: 'છઠ્ઠી માસિક શ્રદ્ધાંજલિ',
-  7: 'સપ્તમ માસિક શ્રદ્ધાંજલિ',
-  8: 'અષ્ટમ માસિક શ્રદ્ધાંજલિ',
-  9: 'નવમ માસિક શ્રદ્ધાંજલિ',
-  10: 'દશમ માસિક શ્રદ્ધાંજલિ',
-  11: 'એકાદશ માસિક શ્રદ્ધાંજલિ',
+  7: 'સાતમી માસિક શ્રદ્ધાંજલિ',
+  8: 'આઠમી માસિક શ્રદ્ધાંજલિ',
+  9: 'નવમી માસિક શ્રદ્ધાંજલિ',
+  10: 'દસમી માસિક શ્રદ્ધાંજલિ',
+  11: 'અગિયારમી માસિક શ્રદ્ધાંજલિ',
   12: 'પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ',
 };
 
-const GUJARATI_YEAR_ORDINALS: Record<number, string> = {
+export const GUJARATI_YEAR_ORDINALS: Record<number, string> = {
   1: 'પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ',
-  2: 'દ્વિતીય વાર્ષિક શ્રદ્ધાંજલિ',
-  3: 'તૃતીય વાર્ષિક શ્રદ્ધાંજલિ',
-  4: 'ચતુર્થ વાર્ષિક શ્રદ્ધાંજલિ',
-  5: 'પંચમ વાર્ષિક શ્રદ્ધાંજલિ',
-  6: 'ષષ્ઠ વાર્ષિક શ્રદ્ધાંજલિ',
-  7: 'સપ્તમ વાર્ષિક શ્રદ્ધાંજલિ',
-  8: 'અષ્ટમ વાર્ષિક શ્રદ્ધાંજલિ',
-  9: 'નવમ વાર્ષિક શ્રદ્ધાંજલિ',
-  10: 'દશમ વાર્ષિક શ્રદ્ધાંજલિ',
-  11: '૧૧મી વાર્ષિક પુણ્યતિથિ',
-  12: '૧૨મી વાર્ષિક પુણ્યતિથિ',
-  15: '૧૫મી વાર્ષિક પુણ્યતિથિ',
-  20: '૨૦મી વાર્ષિક પુણ્યતિથિ',
-  25: 'રજત સ્મૃતિ પુણ્યતિથિ (૨૫ વર્ષ)',
-  50: 'સુવર્ણ સ્મૃતિ પુણ્યતિથિ (૫૦ વર્ષ)',
+  2: 'બીજી વાર્ષિક શ્રદ્ધાંજલિ',
+  3: 'ત્રીજી વાર્ષિક શ્રદ્ધાંજલિ',
+  4: 'ચોથી વાર્ષિક શ્રદ્ધાંજલિ',
+  5: 'પાંચમી વાર્ષિક શ્રદ્ધાંજલિ',
+  6: 'છઠ્ઠી વાર્ષિક શ્રદ્ધાંજલિ',
+  7: 'સાતમી વાર્ષિક શ્રદ્ધાંજલિ',
+  8: 'આઠમી વાર્ષિક શ્રદ્ધાંજલિ',
+  9: 'નવમી વાર્ષિક શ્રદ્ધાંજલિ',
+  10: 'દસમી વાર્ષિક શ્રદ્ધાંજલિ',
+  11: '૧૧મી વાર્ષિક શ્રદ્ધાંજલિ',
+  12: '૧૨મી વાર્ષિક શ્રદ્ધાંજલિ',
+  15: '૧૫મી વાર્ષિક શ્રદ્ધાંજલિ',
+  20: '૨૦મી વાર્ષિક શ્રદ્ધાંજલિ',
+  25: '૨૫મી વાર્ષિક શ્રદ્ધાંજલિ',
+  50: '૫૦મી વાર્ષિક શ્રદ્ધાંજલિ',
 };
+
+export function toGujaratiDigits(num: number | string): string {
+  const gujDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+  return num.toString().replace(/\d/g, (ch) => gujDigits[parseInt(ch, 10)] ?? ch);
+}
 
 export const GUJARATI_WEEKDAYS = [
   'રવિવાર', // Sunday
@@ -90,6 +95,69 @@ export const HINDU_TITHIS_GUJARATI = [
   'ચૌદશ',
   'પૂનમ / અમાસ',
 ];
+
+/**
+ * Returns today's local date in valid YYYY-MM-DD format based on user's local browser clock.
+ * Avoids UTC timezone shift bugs.
+ */
+export function getTodayLocalDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Validates whether a date string is a real valid calendar date.
+ * Handles month lengths and leap years (e.g. 2024-02-29 is valid, 2026-06-31 is invalid).
+ */
+export function isValidDateString(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+
+  if (year < 1900 || year > 2100) return false;
+  if (month < 1 || month > 12) return false;
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) return false;
+
+  return true;
+}
+
+/**
+ * Formats a date for cards as DD/MM/YYYY using Gujarati numerals.
+ * e.g. "2026-11-12" -> "૧૨/૧૧/૨૦૨૬"
+ */
+export function formatCardDate(dateStr: string, useGujaratiDigits = true): string {
+  if (!dateStr) return '';
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  let d: string, m: string, y: string;
+  if (match) {
+    y = match[1];
+    m = match[2];
+    d = match[3];
+  } else {
+    const dmy = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) {
+      d = dmy[1].padStart(2, '0');
+      m = dmy[2].padStart(2, '0');
+      y = dmy[3];
+    } else {
+      return dateStr;
+    }
+  }
+
+  const formatted = `${d}/${m}/${y}`;
+  if (!useGujaratiDigits) return formatted;
+
+  const gujDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+  return formatted.replace(/\d/g, (ch) => gujDigits[parseInt(ch, 10)] ?? ch);
+}
 
 /**
  * Calculates the day of the week in Gujarati from an ISO date string (YYYY-MM-DD).
@@ -219,7 +287,7 @@ export function calculateAnniversary(
   if (completedYears >= 1 && (remainingMonths === 0 || remainingMonths === 11 && eDay >= effectiveDeathDay)) {
     // Yearly anniversary
     const yearHeading = GUJARATI_YEAR_ORDINALS[completedYears] ||
-      `${completedYears}મી વાર્ષિક પુણ્યતિથિ`;
+      `${toGujaratiDigits(completedYears)}મી વાર્ષિક શ્રદ્ધાંજલિ`;
 
     return {
       heading: yearHeading,
@@ -232,7 +300,7 @@ export function calculateAnniversary(
 
   // Otherwise, monthly anniversary
   if (totalMonths <= 11) {
-    const monthHeading = GUJARATI_MONTH_ORDINALS[totalMonths] || `${totalMonths}મી માસિક શ્રદ્ધાંજલિ`;
+    const monthHeading = GUJARATI_MONTH_ORDINALS[totalMonths] || `${toGujaratiDigits(totalMonths)}મી માસિક શ્રદ્ધાંજલિ`;
     return {
       heading: monthHeading,
       type: 'monthly',
@@ -244,10 +312,11 @@ export function calculateAnniversary(
 
   // Multi-year with extra months (e.g. 1 year 4 months)
   return {
-    heading: GUJARATI_YEAR_ORDINALS[completedYears] || `${completedYears}મી વાર્ષિક પુણ્યતિથિ`,
+    heading: GUJARATI_YEAR_ORDINALS[completedYears] || `${toGujaratiDigits(completedYears)}મી વાર્ષિક શ્રદ્ધાંજલિ`,
     type: 'yearly',
     count: completedYears,
     explanation: `${completedYears} વર્ષ અને ${remainingMonths} મહિના`,
     isCompleted: true,
   };
 }
+

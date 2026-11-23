@@ -715,3 +715,4 @@ export const GUJARATI_QUOTES: QuoteItem[] = [
     });
   }
 })();
+

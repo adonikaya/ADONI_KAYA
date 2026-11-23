@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Heart, Sparkles, ShieldCheck } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -75,12 +75,6 @@ export const Footer: React.FC = () => {
               <li>✓ A4 હાઈ-ડેફિનેશન પ્રિન્ટ પીડીએફ</li>
               <li>✓ વોટરમાર્ક વગર સીધું ડાઉનલોડ</li>
             </ul>
-            <div className="mt-4 pt-4 border-t border-gray-800">
-              <Link href="/admin" className="text-xs text-gray-400 hover:text-brand-gold flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>એડમિન સ્માર્ટ ટેમ્પલેટ ક્રિએટર</span>
-              </Link>
-            </div>
           </div>
         </div>
 
@@ -94,3 +88,4 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+

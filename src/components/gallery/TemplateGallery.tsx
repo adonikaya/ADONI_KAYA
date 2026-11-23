@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Sparkles, Filter, Check, Eye, X } from 'lucide-react';
+import { Search, Sparkles, Filter, Check, Eye, X, ChevronRight } from 'lucide-react';
 import { CardTemplate, TemplateCategory } from '../../lib/types';
 import { CARD_TEMPLATES } from '../../data/templates';
 
@@ -12,14 +12,17 @@ interface TemplateGalleryProps {
   selectedTemplateId?: string;
 }
 
-const CATEGORY_TABS: { id: string; name: string; count: number }[] = [
-  { id: 'all', name: 'બધા ટેમ્પલેટ્સ', count: CARD_TEMPLATES.length },
-  { id: 'shradhanjali', name: 'શ્રદ્ધાંજલિ (300+ લક્ષ્ય)', count: 3 },
-  { id: 'besna', name: 'બેસણું (250+ લક્ષ્ય)', count: 2 },
-  { id: 'rabari-style', name: 'રબારી શૈલી (Rabari Style)', count: 2 },
-  { id: 'punyatithi', name: 'પુણ્યતિથિ (100+ લક્ષ્ય)', count: 1 },
-  { id: 'shok-sabha', name: 'શોક સભા (150+ લક્ષ્ય)', count: 1 },
-  { id: 'tervi-dashkriya', name: 'તેરવી / દશક્રિયા', count: 1 },
+const CATEGORY_TABS: { id: string; name: string }[] = [
+  { id: 'all', name: 'બધા ટેમ્પલેટ્સ (૧૦૦+)' },
+  { id: 'shradhanjali', name: 'શ્રદ્ધાંજલિ' },
+  { id: 'peaceful-floral', name: 'પુષ્પાંજલિ / ફૂલ-હાર' },
+  { id: 'temple-sacred', name: 'અગરબત્તી & દિવો' },
+  { id: 'royal-gold', name: 'શાહી ગોલ્ડ / પ્રીમિયમ' },
+  { id: 'rabari-style', name: 'રબારી આભલા શૈલી' },
+  { id: 'punyatithi', name: 'પુણ્યતિથિ સ્મરણ' },
+  { id: 'besna', name: 'બેસણું / પ્રાર્થના સભા' },
+  { id: 'shok-sabha', name: 'શોક સભા' },
+  { id: 'tervi-dashkriya', name: 'તેરવી / દશક્રિયા' },
 ];
 
 export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
@@ -39,7 +42,20 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
     return CARD_TEMPLATES.filter((tpl) => {
       // Category filter
       if (activeTab === 'shradhanjali') {
-        if (tpl.category !== 'shradhanjali' && tpl.category !== 'peaceful-floral' && !tpl.id.includes('shradhanjali')) return false;
+        if (
+          tpl.category !== 'shradhanjali' &&
+          tpl.category !== 'peaceful-floral' &&
+          tpl.category !== 'royal-gold' &&
+          tpl.category !== 'temple-sacred' &&
+          !tpl.id.includes('shradh')
+        )
+          return false;
+      } else if (activeTab === 'peaceful-floral') {
+        if (tpl.category !== 'peaceful-floral') return false;
+      } else if (activeTab === 'temple-sacred') {
+        if (tpl.category !== 'temple-sacred') return false;
+      } else if (activeTab === 'royal-gold') {
+        if (tpl.category !== 'royal-gold') return false;
       } else if (activeTab === 'besna') {
         if (tpl.category !== 'besna') return false;
       } else if (activeTab === 'rabari-style') {
@@ -67,7 +83,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
     <div className="space-y-6">
       {/* Header and Search */}
       <div className="bg-white p-5 rounded-2xl border border-brand-sand shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-brand-maroon font-serifGujarati">
               ટેમ્પલેટ પસંદ કરો
@@ -78,7 +94,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
           </div>
 
           {/* Search bar */}
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full lg:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -99,32 +115,42 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
         </div>
 
         {/* Categories Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORY_TABS.map((tab) => (
+        <div className="relative">
+          <div
+            role="region"
+            aria-label="ટેમ્પલેટ કેટેગરી ફિલ્ટર્સ"
+            tabIndex={0}
+            className="flex items-center gap-2 overflow-x-auto pb-2 pr-7 scrollbar-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-saffron"
+          >
+            {CATEGORY_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-brand-saffron text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
+
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.id
-                  ? 'bg-brand-saffron text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              onClick={() => setFilterPopularOnly(!filterPopularOnly)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1 transition-all border ${
+                filterPopularOnly
+                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {tab.name}
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>માત્ર લોકપ્રિય</span>
             </button>
-          ))}
-
-          <button
-            onClick={() => setFilterPopularOnly(!filterPopularOnly)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1 transition-all border ${
-              filterPopularOnly
-                ? 'bg-amber-100 text-amber-900 border-amber-300'
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>માત્ર લોકપ્રિય</span>
-          </button>
+          </div>
+          <div className="absolute right-0 top-0 bottom-2 flex items-center bg-gradient-to-l from-white via-white/90 to-transparent pl-4 pointer-events-none text-gray-500">
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
+          </div>
         </div>
       </div>
 
@@ -164,7 +190,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                   className="relative aspect-[4/5] w-full p-4 flex flex-col justify-between items-center text-center overflow-hidden cursor-pointer"
                   style={{
                     background:
-                      template.theme.bgType === 'gradient'
+                      template.theme.bgType === 'gradient' || template.theme.bgType === 'procedural'
                         ? `linear-gradient(to bottom, ${template.theme.bgColor}, ${template.theme.secondaryColor})`
                         : template.theme.bgColor,
                   }}
@@ -175,10 +201,39 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                     className="absolute inset-2 border rounded-lg pointer-events-none"
                     style={{
                       borderColor: template.theme.accentColor,
-                      borderStyle: template.theme.borderStyle === 'rabari-embroidery' ? 'dashed' : 'solid',
-                      borderWidth: template.theme.borderStyle === 'rabari-embroidery' ? '2px' : '1.5px',
+                      borderStyle: template.theme.composition === 'double-frame'
+                        ? 'double'
+                        : template.theme.borderStyle === 'rabari-embroidery' ? 'dashed' : 'solid',
+                      borderWidth: template.theme.composition === 'double-frame' ||
+                        template.theme.borderStyle === 'rabari-embroidery' ? '3px' : '1.5px',
                     }}
                   />
+                  {template.theme.composition === 'radial-halo' && (
+                    <div
+                      className="absolute top-[18%] left-1/2 -translate-x-1/2 w-32 h-32 rounded-full pointer-events-none"
+                      style={{
+                        background: `radial-gradient(circle, ${template.theme.accentColor}30, transparent 72%)`,
+                      }}
+                    />
+                  )}
+                  {template.theme.composition === 'side-vines' && (
+                    <>
+                      <div
+                        className="absolute top-[18%] bottom-[18%] left-5 border-l opacity-40 pointer-events-none"
+                        style={{ borderColor: template.theme.accentColor }}
+                      />
+                      <div
+                        className="absolute top-[18%] bottom-[18%] right-5 border-r opacity-40 pointer-events-none"
+                        style={{ borderColor: template.theme.accentColor }}
+                      />
+                    </>
+                  )}
+                  {template.theme.composition === 'lotus-medallion' && (
+                    <div
+                      className="absolute top-[17%] left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border pointer-events-none"
+                      style={{ borderColor: template.theme.accentColor, backgroundColor: `${template.theme.accentColor}22` }}
+                    />
+                  )}
 
                   {/* Badges */}
                   <div className="w-full flex items-center justify-between z-10">
@@ -218,10 +273,17 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                       {template.category === 'besna' ? 'પ્રાર્થના સભા / બેસણું' : 'ભાવપૂર્ણ શ્રદ્ધાંજલિ'}
                     </div>
 
-                    {/* Photo Circle Mock */}
+                    {/* Photo Frame Mock */}
                     <div
-                      className="w-16 h-16 rounded-full border-2 flex items-center justify-center shadow-md my-1"
+                      className="w-16 border-2 flex items-center justify-center shadow-md my-1"
                       style={{
+                        aspectRatio: `1 / ${template.placeholders.photo.aspectRatio}`,
+                        borderRadius:
+                          template.placeholders.photo.shape === 'circle' ||
+                          template.placeholders.photo.shape === 'oval' ||
+                          template.placeholders.photo.shape === 'ornate'
+                            ? '50%'
+                            : template.placeholders.photo.shape === 'rounded-rect' ? '18%' : '0.25rem',
                         borderColor: template.placeholders.photo.borderColor,
                         backgroundColor: '#374151',
                       }}
@@ -315,7 +377,10 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
             <div
               className="aspect-[4/5] w-full rounded-xl p-6 flex flex-col justify-between items-center text-center shadow-inner relative"
               style={{
-                backgroundColor: previewTemplate.theme.bgColor,
+                background: previewTemplate.theme.bgType === 'gradient' ||
+                  previewTemplate.theme.bgType === 'procedural'
+                  ? `linear-gradient(to bottom, ${previewTemplate.theme.bgColor}, ${previewTemplate.theme.secondaryColor})`
+                  : previewTemplate.theme.bgColor,
               }}
             >
               <div
@@ -329,8 +394,15 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                 {previewTemplate.category === 'besna' ? 'પ્રાર્થના સભા / બેસણું' : 'ભાવપૂર્ણ શ્રદ્ધાંજલિ'}
               </div>
               <div
-                className="w-24 h-24 rounded-full border-4 flex items-center justify-center my-4 z-10"
+                className="w-24 border-4 flex items-center justify-center my-4 z-10"
                 style={{
+                  aspectRatio: `1 / ${previewTemplate.placeholders.photo.aspectRatio}`,
+                  borderRadius:
+                    previewTemplate.placeholders.photo.shape === 'circle' ||
+                    previewTemplate.placeholders.photo.shape === 'oval' ||
+                    previewTemplate.placeholders.photo.shape === 'ornate'
+                      ? '50%'
+                      : previewTemplate.placeholders.photo.shape === 'rounded-rect' ? '18%' : '0.25rem',
                   borderColor: previewTemplate.placeholders.photo.borderColor,
                   backgroundColor: '#4B5563',
                 }}
@@ -377,3 +449,4 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
     </div>
   );
 };
+

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Sparkles,
   HeartHandshake,
@@ -20,6 +21,7 @@ import {
 import { CardTemplate, DeceasedDetails, FamilyDetails, AspectRatioFormat } from '@/lib/types';
 import { CARD_TEMPLATES } from '@/data/templates';
 import { GUJARATI_QUOTES } from '@/data/quotes';
+import { getTodayLocalDateString, getGujaratiWeekday } from '@/lib/anniversaryCalculator';
 import { StepProgress } from '@/components/steps/StepProgress';
 import { TemplateGallery } from '@/components/gallery/TemplateGallery';
 import { ShradhanjaliForm } from '@/components/forms/ShradhanjaliForm';
@@ -27,8 +29,58 @@ import { BesnaForm } from '@/components/forms/BesnaForm';
 import { QuoteSelector } from '@/components/forms/QuoteSelector';
 import { FamilyMembersForm } from '@/components/forms/FamilyMembersForm';
 import { LiveCanvasEditor } from '@/components/editor/LiveCanvasEditor';
+import { resolveGallerySelection } from '@/lib/galleryNavigation';
+import { trackEvent } from '@/lib/analytics';
 
-export default function HomePage() {
+function createInitialDeceased(): DeceasedDetails {
+  const today = getTodayLocalDateString();
+  return {
+    name: '',
+    title: 'સ્વર્ગસ્થ',
+    photoUrl: null,
+    photoScale: 1,
+    photoXOffset: 0,
+    photoYOffset: 0,
+    includeFlowers: false,
+    includeDiya: false,
+    useRealDiyas: false,
+    useRealFlowers: false,
+    useRealFrames: false,
+    deathDate: today,
+    weekday: getGujaratiWeekday(today),
+    tithi: '',
+    mobileNumbers: [],
+    eventDate: today,
+    heading: 'પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ',
+    isHeadingOverridden: false,
+    village: '',
+    talukaCity: '',
+    besnaDate: today,
+    besnaWeekday: getGujaratiWeekday(today),
+    besnaTime: '',
+    besnaVenue: '',
+  };
+}
+
+function createInitialFamily(): FamilyDetails {
+  return {
+    familyName: '',
+    nativeVillage: '',
+    showFooter: false,
+    members: [],
+    layoutStyle: 'swargwasi-top',
+    userColumns: 2,
+    userAlignment: 'center',
+  };
+}
+
+function HomePageContent() {
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type');
+  const templateId = searchParams.get('template');
+  const pageTopRef = useRef<HTMLDivElement>(null);
+  const stepContentRef = useRef<HTMLDivElement>(null);
+  const hasStartedNewCreationRef = useRef(false);
   // Wizard State
   const [activeMode, setActiveMode] = useState<'landing' | 'wizard'>('landing');
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -37,53 +89,42 @@ export default function HomePage() {
   // Selected Template
   const [selectedTemplate, setSelectedTemplate] = useState<CardTemplate>(CARD_TEMPLATES[0]);
 
-  // Form State
-  const [deceased, setDeceased] = useState<DeceasedDetails>({
-    name: 'પટેલ મોહનભાઈ કેશવલાલ',
-    title: 'સ્વર્ગસ્થ',
-    photoUrl: null,
-    photoScale: 1,
-    photoXOffset: 0,
-    photoYOffset: 0,
-    deathDate: '2025-07-31',
-    weekday: 'ગુરુવાર',
-    tithi: 'શ્રાવણ સુદ સાતમ',
-    eventDate: '2026-07-31',
-    heading: 'પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ',
-    village: 'વાંકાનેર',
-    talukaCity: 'મોરબી',
-    besnaDate: '2025-08-03',
-    besnaWeekday: 'રવિવાર',
-    besnaTime: 'બપોરે ૩:૦૦ થી ૫:૦૦',
-    besnaVenue: 'પટેલ સમાજ વાડી, સ્ટેશન રોડ',
-  });
+  // Form State — Strict Requirement: Dates initialize to browser's current local date, non-date fields initially empty
+  const [deceased, setDeceased] = useState<DeceasedDetails>(createInitialDeceased);
 
-  const [selectedQuote, setSelectedQuote] = useState<string>(
-    GUJARATI_QUOTES[0]?.text || 'પ્રભુ આપના દિવ્ય આત્માને ચિર શાંતિ અર્પે એવી પ્રાર્થના.'
-  );
+  const [selectedQuote, setSelectedQuote] = useState<string>('');
 
-  const [family, setFamily] = useState<FamilyDetails>({
-    familyName: 'પટેલ',
-    nativeVillage: 'વાંકાનેર',
-    showFooter: true,
-    members: [
-      { id: '1', name: 'દેસાઈ ગોવાભાઈ' },
-      { id: '2', name: 'દેસાઈ આશાબેન' },
-      { id: '3', name: 'દેસાઈ દેવિકાબેન' },
-      { id: '4', name: 'દેસાઈ પલાબેન' },
-      { id: '5', name: 'દેસાઈ ત્રિશાબેન' },
-      { id: '6', name: 'દેસાઈ શ્રેયાબેન' },
-    ],
-  });
+  const [family, setFamily] = useState<FamilyDetails>(createInitialFamily);
 
-  // Load from local storage draft if available
+  const clearForm = useCallback(() => {
+    hasStartedNewCreationRef.current = true;
+    setDeceased(createInitialDeceased());
+    setFamily(createInitialFamily());
+    setSelectedQuote('');
+    setSelectedTemplate(CARD_TEMPLATES[0]);
+    setCurrentStep(1);
+    try {
+      localStorage.removeItem('adoni_kaya_draft');
+    } catch (e) {
+      // Keep the in-memory reset even when browser storage is unavailable.
+    }
+  }, []);
+
+  // Load from local storage draft if available (only if user had actually entered data)
   useEffect(() => {
+    if (hasStartedNewCreationRef.current) return;
+
     try {
       const savedDraft = localStorage.getItem('adoni_kaya_draft');
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
-        if (parsed.deceased) setDeceased(parsed.deceased);
-        if (parsed.family) setFamily(parsed.family);
+        // Only restore if user had filled their own name
+        if (parsed.deceased && parsed.deceased.name && parsed.deceased.name !== 'પટેલ મોહનભાઈ કેશવલાલ') {
+          setDeceased(parsed.deceased);
+        }
+        if (parsed.family && (parsed.family.familyName || (parsed.family.members && parsed.family.members.length > 0))) {
+          setFamily(parsed.family);
+        }
         if (parsed.quote) setSelectedQuote(parsed.quote);
       }
     } catch (e) {
@@ -103,8 +144,9 @@ export default function HomePage() {
     }
   }, [deceased, family, selectedQuote]);
 
-  // Start creation actions
+  // Start creation actions — strictly initialize to today's local date and empty non-date fields
   const startCreation = (type: 'shradhanjali' | 'besna', templateCategory?: string) => {
+    clearForm();
     setCardType(type);
     let defaultTpl = CARD_TEMPLATES.find((t) =>
       type === 'shradhanjali' ? t.category === 'shradhanjali' : t.category === 'besna'
@@ -114,16 +156,24 @@ export default function HomePage() {
     }
     if (defaultTpl) setSelectedTemplate(defaultTpl);
 
-    // Set default appropriate heading
+    const today = getTodayLocalDateString();
+    const todayWeekday = getGujaratiWeekday(today);
+
+    // Initialize dates and heading correctly
     if (type === 'besna') {
       setDeceased((prev) => ({
         ...prev,
+        besnaDate: prev.besnaDate || today,
+        besnaWeekday: prev.besnaWeekday || todayWeekday,
         heading: 'પ્રાર્થના સભા / બેસણું',
         isHeadingOverridden: true,
       }));
     } else {
       setDeceased((prev) => ({
         ...prev,
+        deathDate: prev.deathDate || today,
+        weekday: prev.weekday || todayWeekday,
+        eventDate: prev.eventDate || today,
         heading: 'પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ',
         isHeadingOverridden: false,
       }));
@@ -131,13 +181,55 @@ export default function HomePage() {
 
     setCurrentStep(1);
     setActiveMode('wizard');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    trackEvent({ eventType: 'workflow_started', workflowType: type });
   };
 
   const handleTemplateSelect = (tpl: CardTemplate) => {
     setSelectedTemplate(tpl);
+    const resolvedType = tpl.category === 'besna' ? 'besna' : 'shradhanjali';
+    setCardType(resolvedType);
     setCurrentStep(2); // Auto navigate to info form
+    trackEvent({ eventType: 'template_selected', workflowType: resolvedType, templateId: tpl.id, step: 2 });
   };
+
+  useEffect(() => {
+    if (!typeParam || !templateId) return;
+
+    const selection = resolveGallerySelection(typeParam, templateId, CARD_TEMPLATES);
+    if (!selection) {
+      setActiveMode('landing');
+      setCurrentStep(1);
+      return;
+    }
+
+    if (sessionStorage.getItem('adoni_kaya_new_creation') === 'true') {
+      clearForm();
+      sessionStorage.removeItem('adoni_kaya_new_creation');
+    }
+
+    setCardType(selection.cardType);
+    setSelectedTemplate(selection.template);
+    setCurrentStep(2);
+    setActiveMode('wizard');
+    setDeceased((previous) => ({
+      ...previous,
+      heading: selection.cardType === 'besna'
+        ? 'પ્રાર્થના સભા / બેસણું'
+        : 'પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ',
+      isHeadingOverridden: selection.cardType === 'besna',
+    }));
+  }, [typeParam, templateId, clearForm]);
+
+  useEffect(() => {
+    const target = activeMode === 'wizard' ? stepContentRef.current : pageTopRef.current;
+    if (!target) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }, [activeMode, currentStep]);
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -166,7 +258,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="space-y-12 pb-16">
+    <div ref={pageTopRef} className="space-y-12 pb-16">
       {/* ========================================================
           WIZARD MODE (When user is actively creating a card)
           ======================================================== */}
@@ -180,7 +272,7 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div ref={stepContentRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-48">
             <div className="flex items-center justify-between mb-6">
               <button
                 type="button"
@@ -211,14 +303,20 @@ export default function HomePage() {
                   <ShradhanjaliForm
                     data={deceased}
                     onChange={(up) => setDeceased((prev) => ({ ...prev, ...up }))}
-                    onNext={() => setCurrentStep(3)}
+                    onNext={() => {
+                      setCurrentStep(3);
+                      trackEvent({ eventType: 'details_completed', workflowType: 'shradhanjali', step: 2 });
+                    }}
                     onBack={() => setCurrentStep(1)}
                   />
                 ) : (
                   <BesnaForm
                     data={deceased}
                     onChange={(up) => setDeceased((prev) => ({ ...prev, ...up }))}
-                    onNext={() => setCurrentStep(3)}
+                    onNext={() => {
+                      setCurrentStep(3);
+                      trackEvent({ eventType: 'details_completed', workflowType: 'besna', step: 2 });
+                    }}
                     onBack={() => setCurrentStep(1)}
                   />
                 )}
@@ -230,7 +328,10 @@ export default function HomePage() {
               <QuoteSelector
                 selectedQuote={selectedQuote}
                 onSelectQuote={(q) => setSelectedQuote(q)}
-                onNext={() => setCurrentStep(4)}
+                onNext={() => {
+                  setCurrentStep(4);
+                  trackEvent({ eventType: 'quote_completed', workflowType: cardType, step: 3 });
+                }}
                 onBack={() => setCurrentStep(2)}
               />
             )}
@@ -240,7 +341,11 @@ export default function HomePage() {
               <FamilyMembersForm
                 family={family}
                 onChange={(up) => setFamily((prev) => ({ ...prev, ...up }))}
-                onNext={() => setCurrentStep(5)}
+                onNext={() => {
+                  setCurrentStep(5);
+                  trackEvent({ eventType: 'family_completed', workflowType: cardType, step: 4 });
+                  trackEvent({ eventType: 'review_opened', workflowType: cardType, templateId: selectedTemplate.id, step: 5 });
+                }}
                 onBack={() => setCurrentStep(3)}
               />
             )}
@@ -253,6 +358,7 @@ export default function HomePage() {
                 quoteText={selectedQuote}
                 family={family}
                 cardType={cardType}
+                currentStep={currentStep}
                 onUpdateDeceased={(up) => setDeceased((prev) => ({ ...prev, ...up }))}
                 onUpdateQuote={(q) => setSelectedQuote(q)}
                 onBackToSteps={(step) => setCurrentStep(step)}
@@ -338,39 +444,6 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Dedicated Rabari Style Spotlight Banner */}
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-white rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-2xl border-2 border-amber-600/40">
-              <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-amber-500/20 to-transparent pointer-events-none" />
-
-              <div className="relative z-10 max-w-2xl space-y-4">
-                <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 text-amber-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                  <Palette className="w-3.5 h-3.5" />
-                  <span>વિશેષ પરંપરાગત સંગ્રહ</span>
-                </div>
-
-                <h2 className="text-2xl sm:text-4xl font-extrabold font-serifGujarati text-white">
-                  રબારી શૈલી ભરતકામ અને આભલા વર્ક કલેક્શન
-                </h2>
-
-                <p className="text-sm text-gray-300 font-gujarati leading-relaxed">
-                  કચ્છ અને સૌરાષ્ટ્રના પરંપરાગત ભરતકામ, કાચ-આભલા અને સોનેરી બોર્ડર સાથે વિશેષ શ્રદ્ધાંજલિ કાર્ડ બનાવો. અધિકૃત ગુજરાતી લોકસંસ્કૃતિની અમર પરંપરા.
-                </p>
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => startCreation('shradhanjali', 'rabari-style')}
-                    className="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold font-gujarati text-sm transition-all shadow-md flex items-center gap-2"
-                  >
-                    <span>રબારી શૈલીમાં કાર્ડ બનાવો</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
           {/* Popular Templates Gallery Section */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -389,6 +462,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => {
+                  clearForm();
                   setCurrentStep(1);
                   setActiveMode('wizard');
                 }}
@@ -459,7 +533,10 @@ export default function HomePage() {
 
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearForm();
                         setSelectedTemplate(tpl);
                         setCardType(tpl.category === 'besna' ? 'besna' : 'shradhanjali');
                         setCurrentStep(2);
@@ -637,3 +714,12 @@ export default function HomePage() {
     </div>
   );
 }
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-gujarati">પૃષ્ઠ લોડ થઈ રહ્યું છે...</div>}>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+

@@ -2,7 +2,7 @@
 // Exports to PNG, JPG, and PDF in all standard formats without watermarks or login
 import { jsPDF } from 'jspdf';
 import { CardTemplate, DeceasedDetails, FamilyDetails, AspectRatioFormat, FORMAT_DIMENSIONS } from './types';
-import { renderCardToCanvas } from './canvasRenderer';
+import { FontSizeAdjustments, renderCardToCanvas } from './canvasRenderer';
 
 export type ExportFormat = 'png' | 'jpg' | 'pdf';
 
@@ -15,6 +15,12 @@ export interface ExportCardOptions {
   aspectFormat: AspectRatioFormat;
   exportFormat: ExportFormat;
   fileName?: string;
+  fontSizeAdjustments?: FontSizeAdjustments;
+  verticalSpacing?: number;
+  diyaVerticalOffset?: number;
+  diyaHorizontalOffset?: number;
+  diyaScale?: number;
+  showBranding?: boolean;
 }
 
 /**
@@ -44,6 +50,12 @@ export async function exportCard(options: ExportCardOptions): Promise<void> {
     aspectFormat,
     exportFormat,
     fileName: customFileName,
+    fontSizeAdjustments,
+    verticalSpacing,
+    diyaVerticalOffset,
+    diyaHorizontalOffset,
+    diyaScale,
+    showBranding,
   } = options;
 
   // Create an offscreen canvas
@@ -62,6 +74,12 @@ export async function exportCard(options: ExportCardOptions): Promise<void> {
     {
       selectedFormat: aspectFormat,
       scale: renderScale,
+      fontSizeAdjustments,
+      verticalSpacing,
+      diyaVerticalOffset,
+      diyaHorizontalOffset,
+      diyaScale,
+      showBranding,
     }
   );
 
@@ -71,20 +89,11 @@ export async function exportCard(options: ExportCardOptions): Promise<void> {
   const baseName = customFileName || defaultBaseName;
 
   if (exportFormat === 'png') {
-    offscreenCanvas.toBlob(
-      (blob) => {
-        if (blob) downloadFile(blob, `${baseName}.png`);
-      },
-      'image/png'
-    );
+    const blob = await canvasToBlob(offscreenCanvas, 'image/png');
+    downloadFile(blob, `${baseName}.png`);
   } else if (exportFormat === 'jpg') {
-    offscreenCanvas.toBlob(
-      (blob) => {
-        if (blob) downloadFile(blob, `${baseName}.jpg`);
-      },
-      'image/jpeg',
-      0.95 // High quality JPEG
-    );
+    const blob = await canvasToBlob(offscreenCanvas, 'image/jpeg', 0.95);
+    downloadFile(blob, `${baseName}.jpg`);
   } else if (exportFormat === 'pdf') {
     // Generate PDF
     const imgData = offscreenCanvas.toDataURL('image/jpeg', 0.95);
@@ -101,6 +110,23 @@ export async function exportCard(options: ExportCardOptions): Promise<void> {
     });
 
     pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidthMm, pdfHeightMm);
-    pdf.save(`${baseName}.pdf`);
+    await pdf.save(`${baseName}.pdf`, { returnPromise: true });
   }
 }
+
+function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  mimeType: string,
+  quality?: number
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error(`Unable to create ${mimeType} export.`));
+      }
+    }, mimeType, quality);
+  });
+}
+

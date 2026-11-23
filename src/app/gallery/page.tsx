@@ -14,6 +14,7 @@ function GalleryContent() {
 
   const handleSelectTemplate = (template: CardTemplate) => {
     // Navigate to homepage wizard with selected template
+    window.sessionStorage.setItem('adoni_kaya_new_creation', 'true');
     router.push(`/?type=${template.category === 'besna' ? 'besna' : 'shradhanjali'}&template=${template.id}`);
   };
 
@@ -44,3 +45,4 @@ export default function GalleryPage() {
     </Suspense>
   );
 }
+

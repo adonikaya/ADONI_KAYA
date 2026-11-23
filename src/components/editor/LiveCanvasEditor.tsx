@@ -5,16 +5,16 @@ import {
   Download,
   FileText,
   Image as ImageIcon,
-  RotateCcw,
-  Undo2,
-  Redo2,
   Smartphone,
   Layers,
-  ZoomIn,
-  ZoomOut,
   Sparkles,
   Check,
   Eye,
+  Sliders,
+  ChevronDown,
+  X,
+  Instagram,
+  HeartHandshake,
 } from 'lucide-react';
 import {
   CardTemplate,
@@ -22,9 +22,22 @@ import {
   FamilyDetails,
   AspectRatioFormat,
   FORMAT_DIMENSIONS,
+  PhotoFrameShape,
 } from '../../lib/types';
-import { renderCardToCanvas } from '../../lib/canvasRenderer';
+import {
+  calculateEffectiveFontSizes,
+  FontSizeAdjustments,
+  getPhotoFrameAspectRatio,
+  renderCardToCanvas,
+} from '../../lib/canvasRenderer';
 import { exportCard, ExportFormat } from '../../lib/exportEngine';
+import { trackEvent } from '../../lib/analytics';
+
+type EditorPhotoFrameShape = Exclude<PhotoFrameShape, 'ornate'>;
+
+function getInitialPhotoFrameShape(shape: PhotoFrameShape): EditorPhotoFrameShape {
+  return shape === 'ornate' ? 'oval' : shape;
+}
 
 interface LiveCanvasEditorProps {
   template: CardTemplate;
@@ -32,6 +45,7 @@ interface LiveCanvasEditorProps {
   quoteText: string;
   family: FamilyDetails;
   cardType: 'shradhanjali' | 'besna';
+  currentStep: number;
   onUpdateDeceased?: (updated: Partial<DeceasedDetails>) => void;
   onUpdateQuote?: (quote: string) => void;
   onBackToSteps?: (step: number) => void;
@@ -43,21 +57,100 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
   quoteText,
   family,
   cardType,
+  currentStep,
   onUpdateDeceased,
   onUpdateQuote,
   onBackToSteps,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<AspectRatioFormat>('4:5');
+  const [mobileView, setMobileView] = useState<'preview' | 'controls'>('preview');
   const [isRendering, setIsRendering] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccessMessage, setDownloadSuccessMessage] = useState<string | null>(null);
+  const [downloadErrorMessage, setDownloadErrorMessage] = useState<string | null>(null);
+  const [showInstagramModal, setShowInstagramModal] = useState(false);
+
+  // Default Vertical Spacing: 28px
+  const [verticalSpacing, setVerticalSpacing] = useState(28);
+  const [diyaVerticalOffset, setDiyaVerticalOffset] = useState(deceased.diyaVerticalOffset ?? 0);
+  const [diyaHorizontalOffset, setDiyaHorizontalOffset] = useState(deceased.diyaHorizontalOffset ?? 0);
+  const [diyaScale, setDiyaScale] = useState(deceased.diyaScale ?? 100);
+  const [showBranding, setShowBranding] = useState(true);
 
   // Editor manual adjustments
-  const [customHeading, setCustomHeading] = useState(deceased.heading);
-  const [customName, setCustomName] = useState(deceased.name);
-  const [customQuote, setCustomQuote] = useState(quoteText);
+  const [customHeading, setCustomHeading] = useState(deceased.heading || '');
+  const [customName, setCustomName] = useState(deceased.name || '');
+  const [customQuote, setCustomQuote] = useState(quoteText || '');
+
+  // Default font size deltas (starting at 0 for template defaults or adjustments)
   const [nameFontSizeDelta, setNameFontSizeDelta] = useState(0);
+  const [headingFontSizeDelta, setHeadingFontSizeDelta] = useState(0);
+  const [dateFontSizeDelta, setDateFontSizeDelta] = useState(0);
+  const [tithiFontSizeDelta, setTithiFontSizeDelta] = useState(0);
+  const [quoteFontSizeDelta, setQuoteFontSizeDelta] = useState(0);
+  const [familyFontSizeDelta, setFamilyFontSizeDelta] = useState(0);
+  const [footerFontSizeDelta, setFooterFontSizeDelta] = useState(0);
+
+  const [photoFrameShape, setPhotoFrameShape] = useState<EditorPhotoFrameShape>(() =>
+    getInitialPhotoFrameShape(template.placeholders.photo.shape)
+  );
+
+  const fontSizeAdjustments: FontSizeAdjustments = {
+    heading: headingFontSizeDelta,
+    name: nameFontSizeDelta,
+    dates: dateFontSizeDelta,
+    tithi: tithiFontSizeDelta,
+    quote: quoteFontSizeDelta,
+    family: familyFontSizeDelta,
+    footer: footerFontSizeDelta,
+  };
+
+  const modifiedTemplate: CardTemplate = {
+    ...template,
+    placeholders: {
+      ...template.placeholders,
+      photo: {
+        ...template.placeholders.photo,
+        shape: photoFrameShape,
+        aspectRatio: getPhotoFrameAspectRatio(
+          photoFrameShape,
+          template.placeholders.photo.aspectRatio
+        ),
+      },
+    },
+  };
+
+  const effectiveFontSizes = calculateEffectiveFontSizes(
+    modifiedTemplate,
+    family,
+    fontSizeAdjustments
+  );
+
+  // Sync state if props change
+  useEffect(() => {
+    setCustomHeading(deceased.heading || '');
+  }, [deceased.heading]);
+
+  useEffect(() => {
+    setCustomName(deceased.name || '');
+  }, [deceased.name]);
+
+  useEffect(() => {
+    setCustomQuote(quoteText || '');
+  }, [quoteText]);
+
+  useEffect(() => {
+    setDiyaVerticalOffset(deceased.diyaVerticalOffset ?? 0);
+  }, [deceased.diyaVerticalOffset]);
+
+  useEffect(() => {
+    setDiyaHorizontalOffset(deceased.diyaHorizontalOffset ?? 0);
+  }, [deceased.diyaHorizontalOffset]);
+
+  useEffect(() => {
+    setDiyaScale(deceased.diyaScale ?? 100);
+  }, [deceased.diyaScale]);
 
   // Re-render canvas whenever details or format changes
   const redrawCanvas = async () => {
@@ -69,18 +162,9 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         ...deceased,
         heading: customHeading,
         name: customName,
-      };
-
-      // Create modified template with user font size adjustments if any
-      const modifiedTemplate: CardTemplate = {
-        ...template,
-        placeholders: {
-          ...template.placeholders,
-          deceasedName: {
-            ...template.placeholders.deceasedName,
-            fontSize: template.placeholders.deceasedName.fontSize + nameFontSizeDelta,
-          },
-        },
+        diyaVerticalOffset,
+        diyaHorizontalOffset,
+        diyaScale,
       };
 
       await renderCardToCanvas(
@@ -93,6 +177,12 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         {
           selectedFormat,
           scale: 1, // Preview scale
+          fontSizeAdjustments,
+          verticalSpacing,
+          diyaVerticalOffset,
+          diyaHorizontalOffset,
+          diyaScale,
+          showBranding,
         }
       );
     } catch (err) {
@@ -115,29 +205,41 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
     customName,
     customQuote,
     nameFontSizeDelta,
+    headingFontSizeDelta,
+    dateFontSizeDelta,
+    quoteFontSizeDelta,
+    familyFontSizeDelta,
+    tithiFontSizeDelta,
+    footerFontSizeDelta,
+    photoFrameShape,
+    verticalSpacing,
+    diyaVerticalOffset,
+    diyaHorizontalOffset,
+    diyaScale,
+    showBranding,
   ]);
 
   // Handle High-Res Download
   const handleDownload = async (format: ExportFormat) => {
     setIsDownloading(true);
     setDownloadSuccessMessage(null);
+    setDownloadErrorMessage(null);
+
+    trackEvent({
+      eventType: 'export_attempted',
+      workflowType: cardType,
+      format,
+      templateId: template.id,
+    });
 
     try {
       const activeDeceased: DeceasedDetails = {
         ...deceased,
         heading: customHeading,
         name: customName,
-      };
-
-      const modifiedTemplate: CardTemplate = {
-        ...template,
-        placeholders: {
-          ...template.placeholders,
-          deceasedName: {
-            ...template.placeholders.deceasedName,
-            fontSize: template.placeholders.deceasedName.fontSize + nameFontSizeDelta,
-          },
-        },
+        diyaVerticalOffset,
+        diyaHorizontalOffset,
+        diyaScale,
       };
 
       await exportCard({
@@ -148,13 +250,38 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         cardType,
         aspectFormat: selectedFormat,
         exportFormat: format,
+        fontSizeAdjustments,
+        verticalSpacing,
+        diyaVerticalOffset,
+        diyaHorizontalOffset,
+        diyaScale,
+        showBranding,
       });
 
       const formatLabel = format.toUpperCase();
       setDownloadSuccessMessage(`તમારું ${formatLabel} કાર્ડ સફળતાપૂર્વક હાઈ-રિઝોલ્યુશનમાં ડાઉનલોડ થઈ ગયું છે!`);
-      setTimeout(() => setDownloadSuccessMessage(null), 5000);
+      setShowInstagramModal(true);
+      onBackToSteps?.(6);
+
+      trackEvent({
+        eventType: 'export_success',
+        workflowType: cardType,
+        format,
+        templateId: template.id,
+        status: 'success',
+      });
     } catch (err) {
       console.error('Download failed', err);
+      setDownloadErrorMessage('કાર્ડ ડાઉનલોડ થઈ શક્યું નથી. કૃપા કરીને ફરી પ્રયાસ કરો.');
+
+      trackEvent({
+        eventType: 'export_failed',
+        workflowType: cardType,
+        format,
+        templateId: template.id,
+        status: 'failed',
+        errorCategory: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setIsDownloading(false);
     }
@@ -163,26 +290,27 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
   const currentDims = FORMAT_DIMENSIONS[selectedFormat];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Top Controls Bar */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-brand-sand shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+      {/* Top Header & Aspect Ratio Selector Bar */}
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 rounded-2xl border border-brand-sand bg-white p-4 sm:p-5 shadow-xs">
         <div>
-          <h2 className="text-xl font-bold text-brand-maroon font-serifGujarati flex items-center gap-2">
-            <Eye className="w-5 h-5 text-brand-saffron" />
+          <h2 className="flex items-center gap-2 font-serifGujarati text-base font-bold text-brand-maroon sm:text-xl">
+            <Eye className="h-5 w-5 text-brand-saffron" />
             <span>લાઈવ પૂર્વદર્શન અને અંતિમ એડિટર</span>
           </h2>
-          <p className="text-xs text-gray-500 font-gujarati mt-0.5">
+          <p className="mt-0.5 font-gujarati text-xs text-gray-500">
             જેવું અહીં દેખાશે તેવું જ હાઈ-ડેફિનેશનમાં ડાઉનલોડ થશે.
           </p>
         </div>
 
         {/* Aspect Ratio / Format Selector */}
-        <div className="flex items-center gap-1.5 bg-gray-100 p-1.5 rounded-xl border border-gray-200">
+        <div className="grid w-full grid-cols-2 sm:flex sm:w-auto items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-100 p-1.5">
           {(['4:5', '9:16', '2:3', 'A4'] as AspectRatioFormat[]).map((fmt) => (
             <button
               key={fmt}
+              type="button"
               onClick={() => setSelectedFormat(fmt)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`rounded-lg px-2 py-2 text-center text-[11px] font-bold leading-tight transition-all sm:px-3 sm:py-1.5 sm:text-xs ${
                 selectedFormat === fmt
                   ? 'bg-white text-brand-maroon shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -197,24 +325,61 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         </div>
       </div>
 
-      {/* Main Studio Area */}
+      {/* Mobile Tab Switcher: Preview vs Settings */}
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-brand-sand bg-white p-1 shadow-xs lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileView('preview')}
+          aria-pressed={mobileView === 'preview'}
+          className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center font-gujarati text-xs font-bold leading-tight transition-all ${
+            mobileView === 'preview'
+              ? 'bg-brand-maroon text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Eye className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 whitespace-normal">કાર્ડ પૂર્વદર્શન</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView('controls')}
+          aria-pressed={mobileView === 'controls'}
+          className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center font-gujarati text-xs font-bold leading-tight transition-all ${
+            mobileView === 'controls'
+              ? 'bg-brand-maroon text-white shadow-xs'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Sliders className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 whitespace-normal">સેટિંગ્સ અને ડાઉનલોડ</span>
+        </button>
+      </div>
+
+      {/* Main Studio Area: Two-Column Desktop / Mobile Responsive */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: Interactive Canvas Preview (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col items-center">
-          <div className="w-full bg-stone-900 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col items-center relative overflow-hidden border-4 border-stone-800">
+        {/* LEFT COLUMN: Sticky Card Preview on Desktop */}
+        <div
+          className={`lg:col-span-7 flex flex-col items-center lg:sticky lg:top-24 ${
+            mobileView === 'preview' ? 'flex' : 'hidden lg:flex'
+          }`}
+        >
+          <div className="relative flex w-full flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:rounded-3xl sm:border-4 sm:p-6">
             {/* Dimensions Pill Indicator */}
-            <div className="mb-3 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-white text-[11px] font-mono flex items-center gap-2">
-              <Smartphone className="w-3.5 h-3.5 text-brand-gold" />
+            <div className="mb-3 flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] text-white backdrop-blur-md">
+              <Smartphone className="h-3.5 w-3.5 text-brand-gold" />
               <span>
                 {currentDims.name} • {currentDims.gujaratiName}
               </span>
             </div>
 
-            {/* The Actual HTML5 Rendering Canvas */}
-            <div className="w-full max-w-[460px] aspect-[4/5] flex items-center justify-center">
+            {/* Canvas Container with Proper Centering */}
+            <div
+              className="flex w-full max-w-[480px] items-center justify-center"
+              style={{ aspectRatio: `${currentDims.width} / ${currentDims.height}` }}
+            >
               <canvas
                 ref={canvasRef}
-                className="max-h-[620px] max-w-full rounded-lg shadow-xl object-contain border border-stone-700 bg-white"
+                className="max-h-[70vh] max-w-full rounded-lg border border-stone-700 bg-white object-contain shadow-xl sm:max-h-[640px]"
                 style={{
                   aspectRatio: `${currentDims.width} / ${currentDims.height}`,
                 }}
@@ -223,169 +388,566 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
 
             {/* Canvas Status Indicator */}
             {isRendering && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center text-white text-xs font-gujarati">
-                <Sparkles className="w-4 h-4 animate-spin mr-2 text-brand-gold" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 font-gujarati text-xs text-white backdrop-blur-xs">
+                <Sparkles className="mr-2 h-4 w-4 animate-spin text-brand-gold" />
                 <span>કાર્ડ રી-રેન્ડર થઈ રહ્યું છે...</span>
               </div>
             )}
           </div>
+
+          {/* Quick Mobile Action to Edit / Download */}
+          <div className="mt-4 flex w-full justify-center lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileView('controls')}
+              className="w-full rounded-xl bg-brand-maroon px-4 py-3 font-gujarati text-xs font-bold text-white shadow-md active:scale-[0.98]"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <Sliders className="h-4 w-4 text-brand-gold" />
+                <span>સેટિંગ્સ અને ડાઉનલોડ</span>
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Right: Quick Editing Controls & Download Actions (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* RIGHT COLUMN: Scrollable Editing Controls Panel */}
+        <div
+          className={`lg:col-span-5 space-y-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-2 ${
+            mobileView === 'controls' ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          {/* Quick Mobile Action to Preview */}
+          <div className="flex w-full flex-col items-stretch gap-2 rounded-xl border border-brand-sand bg-brand-cream/60 p-3 sm:flex-row sm:items-center sm:justify-between lg:hidden">
+            <span className="font-gujarati text-xs font-semibold text-gray-700">પૂર્વદર્શન જોવા માંગો છો?</span>
+            <button
+              type="button"
+              onClick={() => setMobileView('preview')}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-maroon px-3 py-2 font-gujarati text-xs font-bold text-white shadow-xs active:scale-[0.98] sm:shrink-0"
+            >
+              <Eye className="h-3.5 w-3.5 text-brand-gold" />
+              <span>કાર્ડ જુઓ ➔</span>
+            </button>
+          </div>
+
           {/* Download Action Card */}
-          <div className="bg-gradient-to-br from-brand-maroon via-brand-maroonDark to-stone-900 text-white rounded-2xl p-6 shadow-lg space-y-4">
+          <div className="space-y-4 rounded-2xl bg-gradient-to-br from-brand-maroon via-brand-maroonDark to-stone-900 p-4 text-white shadow-lg sm:p-6">
             <div>
-              <span className="text-[11px] bg-brand-gold/20 text-brand-gold px-2.5 py-0.5 rounded-full border border-brand-gold/30 font-semibold uppercase tracking-wider">
+              <span className="rounded-full border border-brand-gold/30 bg-brand-gold/20 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-brand-gold">
                 હાઈ-રિઝોલ્યુશન ડાઉનલોડ
               </span>
-              <h3 className="text-lg font-bold font-serifGujarati text-white mt-1.5">
+              <h3 className="mt-1.5 font-serifGujarati text-base font-bold text-white sm:text-lg">
                 વોટરમાર્ક વગર મફત ડાઉનલોડ કરો
               </h3>
-              <p className="text-xs text-gray-300 font-gujarati mt-0.5">
+              <p className="mt-0.5 font-gujarati text-xs text-gray-300">
                 કોઈપણ રજીસ્ટ્રેશન કે પેમેન્ટ વિના સીધું ડાઉનલોડ ઉપલબ્ધ છે.
               </p>
             </div>
 
             {/* Download Buttons */}
-            <div className="grid grid-cols-3 gap-2.5 pt-2">
+            <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-3 sm:gap-2.5">
               <button
                 type="button"
                 disabled={isDownloading}
                 onClick={() => handleDownload('png')}
-                className="py-3 px-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex flex-col items-center justify-center gap-1.5"
+                className="flex min-h-14 items-center justify-start gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-left transition-colors hover:bg-white/15 active:scale-[0.99] disabled:opacity-50 sm:min-h-32 sm:flex-col sm:justify-center sm:gap-1.5 sm:px-2 sm:text-center"
               >
-                <ImageIcon className="w-5 h-5 text-emerald-400" />
-                <span className="text-xs font-bold text-white">PNG ઈમેજ</span>
-                <span className="text-[10px] text-gray-300">ક્રિસ્પ ક્વોલિટી</span>
+                <ImageIcon className="h-5 w-5 shrink-0 text-emerald-400" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-xs font-bold text-white">PNG ઈમેજ</span>
+                  <span className="text-[10px] text-gray-300">ક્રિસ્પ ક્વોલિટી</span>
+                </span>
               </button>
 
               <button
                 type="button"
                 disabled={isDownloading}
                 onClick={() => handleDownload('jpg')}
-                className="py-3 px-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex flex-col items-center justify-center gap-1.5"
+                className="flex min-h-14 items-center justify-start gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-left transition-colors hover:bg-white/15 active:scale-[0.99] disabled:opacity-50 sm:min-h-32 sm:flex-col sm:justify-center sm:gap-1.5 sm:px-2 sm:text-center"
               >
-                <Download className="w-5 h-5 text-brand-gold" />
-                <span className="text-xs font-bold text-white">JPG ઈમેજ</span>
-                <span className="text-[10px] text-gray-300">વોટ્સએપ શેર</span>
+                <Download className="h-5 w-5 shrink-0 text-brand-gold" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-xs font-bold text-white">JPG ઈમેજ</span>
+                  <span className="text-[10px] text-gray-300">વોટ્સએપ શેર</span>
+                </span>
               </button>
 
               <button
                 type="button"
                 disabled={isDownloading}
                 onClick={() => handleDownload('pdf')}
-                className="py-3 px-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex flex-col items-center justify-center gap-1.5"
+                className="flex min-h-14 items-center justify-start gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-left transition-colors hover:bg-white/15 active:scale-[0.99] disabled:opacity-50 sm:min-h-32 sm:flex-col sm:justify-center sm:gap-1.5 sm:px-2 sm:text-center"
               >
-                <FileText className="w-5 h-5 text-rose-400" />
-                <span className="text-xs font-bold text-white">PDF ફાઇલ</span>
-                <span className="text-[10px] text-gray-300">પ્રિન્ટિંગ માટે</span>
+                <FileText className="h-5 w-5 shrink-0 text-rose-400" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-xs font-bold text-white">PDF ફાઇલ</span>
+                  <span className="text-[10px] text-gray-300">પ્રિન્ટિંગ માટે</span>
+                </span>
               </button>
             </div>
 
             {/* Success Message */}
             {downloadSuccessMessage && (
-              <div className="p-3 bg-emerald-950/80 border border-emerald-500 rounded-xl flex items-center gap-2 text-xs text-emerald-200">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-500 bg-emerald-950/80 p-3 text-xs text-emerald-200">
+                <Check className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>{downloadSuccessMessage}</span>
               </div>
             )}
+            {downloadErrorMessage && (
+              <p role="alert" className="rounded-xl border border-red-400 bg-red-950/70 p-3 font-gujarati text-xs text-red-200">
+                {downloadErrorMessage}
+              </p>
+            )}
           </div>
 
-          {/* Quick Fine-Tuning Controls */}
-          <div className="bg-white rounded-2xl border border-brand-sand shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 font-serifGujarati flex items-center gap-1.5 border-b border-gray-100 pb-2">
-              <Layers className="w-4 h-4 text-brand-saffron" />
-              <span>ટેક્સ્ટ અને ફોન્ટ ફાઈન-ટ્યુનિંગ</span>
+          {/* Controls Card: Organized Sections */}
+          <div className="space-y-5 rounded-2xl border border-brand-sand bg-white p-4 sm:p-6 shadow-sm">
+            <h3 className="flex items-center gap-1.5 border-b border-gray-100 pb-2 font-serifGujarati text-sm font-bold text-gray-900">
+              <Layers className="h-4 w-4 text-brand-saffron" />
+              <span>કાર્ડ કસ્ટમાઇઝેશન પેનલ</span>
             </h3>
 
-            {/* Heading quick edit */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 font-gujarati">
-                મુખ્ય હેડિંગ:
-              </label>
-              <input
-                type="text"
-                value={customHeading}
-                onChange={(e) => {
-                  setCustomHeading(e.target.value);
-                  onUpdateDeceased?.({ heading: e.target.value });
-                }}
-                className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati font-bold text-brand-maroon"
-              />
+            {/* SECTION 1: Quick Text Edits */}
+            <div className="space-y-3">
+              <span className="block font-gujarati text-xs font-bold text-brand-maroon">
+                ૧. મુખ્ય લખાણ ફાઈન-ટ્યુનિંગ
+              </span>
+              <div>
+                <label className="mb-1 block font-gujarati text-xs font-bold text-gray-700">
+                  મુખ્ય હેડિંગ:
+                </label>
+                <input
+                  type="text"
+                  value={customHeading}
+                  onChange={(e) => {
+                    setCustomHeading(e.target.value);
+                    onUpdateDeceased?.({ heading: e.target.value });
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs font-bold text-brand-maroon focus:outline-none focus:ring-2 focus:ring-brand-saffron"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-gujarati text-xs font-bold text-gray-700">
+                  સ્વર્ગસ્થનું નામ:
+                </label>
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={(e) => {
+                    setCustomName(e.target.value);
+                    onUpdateDeceased?.({ name: e.target.value });
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-saffron"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-gujarati text-xs font-bold text-gray-700">
+                  સ્મૃતિ સંદેશ:
+                </label>
+                <textarea
+                  rows={2}
+                  value={customQuote}
+                  onChange={(e) => {
+                    setCustomQuote(e.target.value);
+                    onUpdateQuote?.(e.target.value);
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs focus:outline-none focus:ring-2 focus:ring-brand-saffron"
+                />
+              </div>
             </div>
 
-            {/* Name quick edit */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 font-gujarati">
-                સ્વર્ગસ્થનું નામ:
+            {/* SECTION 2: Photo Frame Shape & Real Frame Asset Toggle */}
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              <span className="block font-gujarati text-xs font-bold text-brand-maroon">
+                ૨. ફોટો અને ફ્રેમ સેટિંગ્સ
+              </span>
+              <label className="block font-gujarati text-xs font-bold text-gray-700">
+                📷 ફોટો ફ્રેમ આકાર:
               </label>
-              <input
-                type="text"
-                value={customName}
-                onChange={(e) => {
-                  setCustomName(e.target.value);
-                  onUpdateDeceased?.({ name: e.target.value });
-                }}
-                className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati font-bold text-gray-900"
-              />
+              <div className="grid grid-cols-3 gap-1.5">
+                {([
+                  { value: 'circle', label: 'ગોળ', icon: '⬤' },
+                  { value: 'square', label: 'ચોરસ', icon: '■' },
+                  { value: 'rect', label: 'લંબચોરસ', icon: '▬' },
+                  { value: 'portrait-rect', label: 'પોર્ટ્રેટ', icon: '▮' },
+                  { value: 'oval', label: 'અંડાકાર', icon: '⬭' },
+                  { value: 'rounded-rect', label: 'ગોળ ખૂણા', icon: '▢' },
+                ] as const).map((shape) => (
+                  <button
+                    key={shape.value}
+                    type="button"
+                    onClick={() => setPhotoFrameShape(shape.value)}
+                    className={`flex flex-col items-center gap-0.5 rounded-lg border py-2 px-1 text-center text-xs transition-all ${
+                      photoFrameShape === shape.value
+                        ? 'border-brand-saffron bg-brand-saffron/10 font-bold text-brand-maroon'
+                        : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg leading-none">{shape.icon}</span>
+                    <span className="font-gujarati text-[10px]">{shape.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Font Size slider */}
-            <div>
-              <div className="flex justify-between text-xs text-gray-600 mb-1 font-gujarati">
-                <span>નામ ફોન્ટ સાઇઝ:</span>
-                <span className="font-mono font-bold">
-                  {template.placeholders.deceasedName.fontSize + nameFontSizeDelta} px
-                </span>
+            {/* SECTION 3: Decoration Settings */}
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              <span className="block font-gujarati text-xs font-bold text-brand-maroon">
+                ૩. દીવા અને સજાવટ નિયંત્રણ (Diya & Decorations)
+              </span>
+
+              <div className="space-y-2.5 rounded-xl border border-brand-sand bg-brand-cream/30 p-3.5">
+                {/* Setting 1: Procedural Diya Checkbox */}
+                <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deceased.includeDiya === true}
+                    onChange={(e) => onUpdateDeceased?.({ includeDiya: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 accent-brand-saffron"
+                  />
+                  <span>પરંપરાગત દીવો ઉમેરો (Procedural Diya)</span>
+                </label>
+
+                {/* Setting 2: Procedural Flower Checkbox */}
+                <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deceased.includeFlowers === true}
+                    onChange={(e) => onUpdateDeceased?.({ includeFlowers: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 accent-brand-saffron"
+                  />
+                  <span>પરંપરાગત ફૂલો અને પાંદડીઓ ઉમેરો (Procedural Flowers)</span>
+                </label>
+
+                <div className="border-t border-brand-sand/50 my-1 pt-1" />
+
+                {/* Setting 3: Real Diya Assets Checkbox */}
+                <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-brand-maroon cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deceased.useRealDiyas === true}
+                    onChange={(e) => onUpdateDeceased?.({ useRealDiyas: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 accent-brand-saffron"
+                  />
+                  <span>વાસ્તવિક દીવડાના ડિઝાઇન ઉમેરો (Use Real Diya Assets)</span>
+                </label>
+                <p className="font-gujarati text-[10px] text-gray-500 pl-6.5">
+                  ફોટોની બંને બાજુએ (ડાબે અને જમણે) સમપ્રમાણ પીત્તળના દીવા-સ્ટેન્ડ પ્રદર્શિત કરે છે.
+                </p>
+
+                {/* Diya Vertical Position & Spacing Option */}
+                <div className="pt-2.5 border-t border-brand-sand/50">
+                  <div className="mb-1 flex justify-between font-gujarati text-xs text-brand-maroon">
+                    <span className="font-bold">દીવાનું ઊંચાઈ / વર્ટિકલ સ્થાન (Vertical Position):</span>
+                    <span className="font-mono font-bold">
+                      {diyaVerticalOffset > 0 ? `+${diyaVerticalOffset}` : diyaVerticalOffset} px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-80}
+                    max={80}
+                    value={diyaVerticalOffset}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setDiyaVerticalOffset(val);
+                      onUpdateDeceased?.({ diyaVerticalOffset: val });
+                    }}
+                    className="h-1.5 w-full accent-brand-saffron"
+                  />
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 font-gujarati">
+                    <span>-80 px (ઉપર)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiyaVerticalOffset(0);
+                        onUpdateDeceased?.({ diyaVerticalOffset: 0 });
+                      }}
+                      className="text-xs text-brand-saffron underline hover:text-brand-maroon font-bold"
+                    >
+                      ૦ px (રીસેટ)
+                    </button>
+                    <span>+80 px (નીચે)</span>
+                  </div>
+                </div>
+
+                {/* Diya Horizontal Position Option */}
+                <div className="pt-2 border-t border-brand-sand/50">
+                  <div className="mb-1 flex justify-between font-gujarati text-xs text-brand-maroon">
+                    <span className="font-bold">દીવાનું આડું સ્થાન / અંતર (Horizontal Position):</span>
+                    <span className="font-mono font-bold">
+                      {diyaHorizontalOffset > 0 ? `+${diyaHorizontalOffset}` : diyaHorizontalOffset} px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-60}
+                    max={60}
+                    value={diyaHorizontalOffset}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setDiyaHorizontalOffset(val);
+                      onUpdateDeceased?.({ diyaHorizontalOffset: val });
+                    }}
+                    className="h-1.5 w-full accent-brand-saffron"
+                  />
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 font-gujarati">
+                    <span>-60 px (ફોટોની નજીક)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiyaHorizontalOffset(0);
+                        onUpdateDeceased?.({ diyaHorizontalOffset: 0 });
+                      }}
+                      className="text-xs text-brand-saffron underline hover:text-brand-maroon font-bold"
+                    >
+                      ૦ px (રીસેટ)
+                    </button>
+                    <span>+60 px (ફોટોથી દૂર)</span>
+                  </div>
+                </div>
+
+                {/* Diya Size / Scale Option */}
+                <div className="pt-2 border-t border-brand-sand/50">
+                  <div className="mb-1 flex justify-between font-gujarati text-xs text-brand-maroon">
+                    <span className="font-bold">દીવાની સાઇઝ / કદ (Diya Size):</span>
+                    <span className="font-mono font-bold">{diyaScale}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={60}
+                    max={150}
+                    value={diyaScale}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setDiyaScale(val);
+                      onUpdateDeceased?.({ diyaScale: val });
+                    }}
+                    className="h-1.5 w-full accent-brand-saffron"
+                  />
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 font-gujarati">
+                    <span>60% (નાનો)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiyaScale(100);
+                        onUpdateDeceased?.({ diyaScale: 100 });
+                      }}
+                      className="text-xs text-brand-saffron underline hover:text-brand-maroon font-bold"
+                    >
+                      100% (ડિફૉલ્ટ)
+                    </button>
+                    <span>150% (મોટો)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 4: Font Sizes & Text Sizing */}
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              <span className="block font-gujarati text-xs font-bold text-brand-maroon">
+                ૪. ફોન્ટ સાઇઝ નિયંત્રણ (ડિફૉલ્ટ સાઇઝ સેટિંગ્સ)
+              </span>
+
+              {/* Heading font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>મુખ્ય હેડિંગ (ડિફૉલ્ટ: 38px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.heading}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-18}
+                  max={18}
+                  value={headingFontSizeDelta}
+                  onChange={(e) => setHeadingFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Name font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>સ્વર્ગસ્થનું નામ (ડિફૉલ્ટ: 46px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.name}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-18}
+                  max={18}
+                  value={nameFontSizeDelta}
+                  onChange={(e) => setNameFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Date font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>તારીખ / વિગત (ડિફૉલ્ટ: 24px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.dates}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-12}
+                  max={14}
+                  value={dateFontSizeDelta}
+                  onChange={(e) => setDateFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Tithi font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>તિથિ (ડિફૉલ્ટ: 24px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.tithi}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-10}
+                  max={12}
+                  value={tithiFontSizeDelta}
+                  onChange={(e) => setTithiFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Quote font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>સ્મૃતિ સંદેશ (ડિફૉલ્ટ: 26px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.quote}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-12}
+                  max={12}
+                  value={quoteFontSizeDelta}
+                  onChange={(e) => setQuoteFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Family names font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>પરિવારના નામ (ડિફૉલ્ટ: 26px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.family}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-10}
+                  max={10}
+                  value={familyFontSizeDelta}
+                  onChange={(e) => setFamilyFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Footer font size */}
+              <div>
+                <div className="mb-0.5 flex justify-between font-gujarati text-xs text-gray-600">
+                  <span>ફૂટર (ડિફૉલ્ટ: 26px):</span>
+                  <span className="font-mono font-bold">{effectiveFontSizes.footer}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={-10}
+                  max={10}
+                  value={footerFontSizeDelta}
+                  onChange={(e) => setFooterFontSizeDelta(parseInt(e.target.value, 10))}
+                  className="h-1 w-full accent-brand-saffron"
+                />
+              </div>
+
+              {/* Reset all font sizes */}
+              <button
+                type="button"
+                onClick={() => {
+                  setHeadingFontSizeDelta(0);
+                  setNameFontSizeDelta(0);
+                  setDateFontSizeDelta(0);
+                  setTithiFontSizeDelta(0);
+                  setQuoteFontSizeDelta(0);
+                  setFamilyFontSizeDelta(0);
+                  setFooterFontSizeDelta(0);
+                }}
+                className="font-gujarati text-xs text-gray-500 underline hover:text-brand-maroon"
+              >
+                ↺ બધા ફોન્ટ સાઇઝ ડિફૉલ્ટ પર રીસેટ કરો
+              </button>
+            </div>
+
+            {/* SECTION 5: Vertical Spacing Slider (Default: 28px) */}
+            <div className="border-t border-gray-100 pt-4">
+              <div className="flex items-center justify-between gap-3 font-gujarati text-xs text-gray-700">
+                <label htmlFor="vertical-spacing" className="font-bold text-brand-maroon">
+                  ૫. ટેક્સ્ટ વચ્ચેનું અંતર (Vertical Spacing)
+                </label>
+                <span className="font-mono font-bold">{verticalSpacing} px</span>
               </div>
               <input
+                id="vertical-spacing"
                 type="range"
-                min={-12}
-                max={16}
-                value={nameFontSizeDelta}
-                onChange={(e) => setNameFontSizeDelta(parseInt(e.target.value, 10))}
-                className="w-full accent-brand-saffron"
+                min={0}
+                max={100}
+                value={verticalSpacing}
+                onChange={(event) => setVerticalSpacing(Number(event.target.value))}
+                className="mt-2 w-full accent-brand-saffron"
               />
+              <div className="mt-1 flex justify-between text-[11px] text-gray-500 font-gujarati">
+                <span>0 px (સઘન)</span>
+                <span>ડિફૉલ્ટ: 28 px</span>
+                <span>100 px (વિસ્તૃત)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerticalSpacing(28)}
+                className="mt-1.5 font-gujarati text-xs text-gray-500 underline hover:text-brand-maroon"
+              >
+                અંતર ડિફૉલ્ટ (28px) પર રીસેટ કરો
+              </button>
             </div>
 
-            {/* Quote quick edit */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 font-gujarati">
-                સ્મૃતિ સંદેશ:
+            {/* SECTION 6: Watermark & Branding Setting */}
+            <div className="border-t border-gray-100 pt-4">
+              <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showBranding}
+                  onChange={(e) => setShowBranding(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 accent-brand-saffron"
+                />
+                <span>વોટરમાર્ક / બ્રાન્ડિંગ દર્શાવો ("By Adoni Kaya")</span>
               </label>
-              <textarea
-                rows={2}
-                value={customQuote}
-                onChange={(e) => {
-                  setCustomQuote(e.target.value);
-                  onUpdateQuote?.(e.target.value);
-                }}
-                className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati"
-              />
+              <p className="mt-1 font-gujarati text-[11px] text-gray-500 pl-6.5">
+                કાર્ડના નીચેના જમણા ખૂણામાં નાનું બ્રાન્ડિંગ દર્શાવે છે. જો ન રાખવું હોય તો ચેકમાર્ક દૂર કરી શકો છો.
+              </p>
             </div>
 
             {/* Back to Steps Navigation Shortcuts */}
-            <div className="pt-3 border-t border-gray-100 flex flex-wrap gap-2 text-xs">
-              <span className="text-gray-400 self-center">સુધારો:</span>
+            <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3 text-xs">
+              <span className="self-center text-gray-400">સુધારો:</span>
               <button
                 type="button"
                 onClick={() => onBackToSteps?.(2)}
-                className="px-2.5 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-gujarati"
+                className="rounded-lg bg-gray-100 px-2.5 py-1 font-gujarati text-gray-700 hover:bg-gray-200"
               >
                 વિગતો બદલો
               </button>
               <button
                 type="button"
                 onClick={() => onBackToSteps?.(3)}
-                className="px-2.5 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-gujarati"
+                className="rounded-lg bg-gray-100 px-2.5 py-1 font-gujarati text-gray-700 hover:bg-gray-200"
               >
                 સંદેશ બદલો
               </button>
               <button
                 type="button"
                 onClick={() => onBackToSteps?.(4)}
-                className="px-2.5 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-gujarati"
+                className="rounded-lg bg-gray-100 px-2.5 py-1 font-gujarati text-gray-700 hover:bg-gray-200"
               >
                 પરિવાર બદલો
               </button>
@@ -393,6 +955,68 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* TASK 6: Instagram Pop-up Modal After Successful Download */}
+      {showInstagramModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border-2 border-brand-gold bg-white p-6 sm:p-8 text-center shadow-2xl">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowInstagramModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              aria-label="બંધ કરો"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Success Check Badge */}
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-inner">
+              <Check className="h-10 w-10 stroke-[3]" />
+            </div>
+
+            {/* Heading */}
+            <h3 className="mt-4 font-serifGujarati text-2xl font-bold text-brand-maroon">
+              {cardType === 'shradhanjali'
+                ? 'તમારી શ્રદ્ધાંજલિ સફળતાપૂર્વક તૈયાર થઈ ગઈ છે!'
+                : 'તમારું બેસણું કાર્ડ સફળતાપૂર્વક તૈયાર થઈ ગયું છે!'}
+            </h3>
+
+            {/* Notice */}
+            <p className="mt-1 font-gujarati text-sm font-semibold text-emerald-700">
+              તમારું કાર્ડ ડાઉનલોડ થઈ ગયું છે.
+            </p>
+
+            {/* Message */}
+            <p className="mt-3 font-gujarati text-xs leading-relaxed text-gray-600">
+              અડોણી કાયા સાથે સુંદર શ્રદ્ધાંજલિ અને બેસણું કાર્ડ બનાવવા બદલ આભાર.
+              <br />
+              વધુ મદદ, માર્ગદર્શન અને નવા અપડેટ્સ માટે અમને Instagram પર Follow કરો.
+            </p>
+
+            {/* Actions */}
+            <div className="mt-6 flex flex-col gap-3">
+              <a
+                href="https://www.instagram.com/adoni_kaya/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 via-rose-600 to-purple-600 px-6 py-3 font-serifGujarati text-sm font-bold text-white shadow-lg transition-all hover:scale-102 hover:shadow-xl active:scale-98"
+              >
+                <Instagram className="h-4 w-4" />
+                <span>Instagram પર Follow કરો</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowInstagramModal(false)}
+                className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-2.5 font-gujarati text-xs font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                પાછા જાઓ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

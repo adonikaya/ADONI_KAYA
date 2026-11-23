@@ -4,5 +4,7 @@ dist-test
 out
 build
 .env*.local
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
+

@@ -43,15 +43,43 @@ export interface PlaceholderStyle {
   minFontSize?: number;
 }
 
+export type PhotoFrameShape =
+  | 'circle'
+  | 'square'
+  | 'rect'
+  | 'portrait-rect'
+  | 'oval'
+  | 'rounded-rect'
+  | 'ornate';
+
+export type TemplateComposition =
+  | 'double-frame'
+  | 'side-vines'
+  | 'corner-bouquets'
+  | 'arched-halo'
+  | 'radial-halo'
+  | 'lotus-medallion'
+  | 'stepped-corners'
+  | 'decorative-bands';
+
 export interface PhotoFramePlaceholder {
   x: number; // center x percentage
   y: number; // center y percentage
   size: number; // width in percentage
   aspectRatio: number; // height/width ratio (1 for circle/square, 1.25 for oval)
-  shape: 'circle' | 'oval' | 'rect' | 'ornate';
+  shape: PhotoFrameShape;
   borderWidth: number;
   borderColor: string;
-  garlandStyle?: 'marigold' | 'white-rose' | 'golden-frame' | 'none';
+  garlandStyle?: 'marigold' | 'white-rose' | 'golden-frame' | 'rose-petal' | 'pearl-gold' | 'none';
+}
+
+export interface TemplateDecorationAssets {
+  diyaStand?: string;
+  photoFrame?: string;
+  diya?: string;
+  flowerCorner?: string;
+  garland?: string;
+  flowers?: string;
 }
 
 export interface CardTemplate {
@@ -69,9 +97,12 @@ export interface CardTemplate {
     bgColor: string;
     secondaryColor?: string;
     accentColor: string;
-    borderStyle: 'traditional' | 'rabari-embroidery' | 'royal-filigree' | 'floral-divine' | 'minimal-gold';
+    borderStyle: 'traditional' | 'rabari-embroidery' | 'royal-filigree' | 'floral-divine' | 'minimal-gold' | 'ornamental-arch' | 'sacred-mandap' | 'marigold-border';
     motif: 'om' | 'kalash' | 'diya' | 'swastik' | 'feather' | 'none';
     bgImageUrl?: string;
+    decorations?: string[];
+    composition?: TemplateComposition;
+    decorationAssets?: TemplateDecorationAssets;
   };
   placeholders: {
     header: PlaceholderStyle;
@@ -94,10 +125,21 @@ export interface DeceasedDetails {
   photoScale?: number;
   photoXOffset?: number;
   photoYOffset?: number;
+  includeFlowers?: boolean;
+  includeDiya?: boolean;
+  useRealDiyas?: boolean;
+  useRealFlowers?: boolean;
+  useRealFrames?: boolean;
+  diyaVerticalOffset?: number;
+  diyaHorizontalOffset?: number;
+  diyaScale?: number;
   birthDate?: string;
   deathDate: string;
   weekday: string;
   tithi: string;
+  tithiPaksha?: 'સુદ પક્ષ' | 'વદ પક્ષ';
+  tithiName?: string;
+  tithiMonth?: string;
   eventDate?: string; // used for calculating anniversary
   heading: string; // e.g. પ્રથમ વાર્ષિક શ્રદ્ધાંજલિ
   isHeadingOverridden?: boolean;
@@ -107,12 +149,15 @@ export interface DeceasedDetails {
   besnaWeekday?: string;
   besnaTime?: string;
   besnaVenue?: string;
+  mobileNumbers?: string[];
+  contactPersons?: { number: string; name?: string }[];
 }
 
 export interface FamilyMember {
   id: string;
   name: string;
   relation?: string;
+  isSwargwasi?: boolean;
 }
 
 export interface FamilyDetails {
@@ -121,6 +166,13 @@ export interface FamilyDetails {
   extraNote?: string;
   members: FamilyMember[];
   showFooter: boolean;
+  layoutStyle?: 'swargwasi-top' | 'swargwasi-columns';
+  userColumns?: 1 | 2 | 3 | 4;
+  userAlignment?: 'left' | 'center' | 'right';
+  fontSizeDelta?: number;
+  lineSpacing?: number;
+  columnSpacing?: number;
+  topBottomSpacing?: number;
 }
 
 export interface QuoteItem {
@@ -141,3 +193,4 @@ export interface ProjectCardState {
   family: FamilyDetails;
   customOverrides?: Record<string, Partial<PlaceholderStyle>>;
 }
+

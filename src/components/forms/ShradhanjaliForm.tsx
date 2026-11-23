@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Upload, X, Calendar, RefreshCw, ZoomIn, ZoomOut, Check, Info } from 'lucide-react';
+import { Upload, X, Calendar, RefreshCw, ZoomIn, ZoomOut, Check, Crop } from 'lucide-react';
 import { DeceasedDetails } from '../../lib/types';
+import { PhotoCropDialog } from './PhotoCropDialog';
+import { TithiFields } from './TithiFields';
 import {
   calculateAnniversary,
   getGujaratiWeekday,
-  HINDU_MONTHS_GUJARATI,
-  HINDU_PAKSHA_GUJARATI,
-  HINDU_TITHIS_GUJARATI,
+  getTodayLocalDateString,
+  isValidDateString,
 } from '../../lib/anniversaryCalculator';
 
 interface ShradhanjaliFormProps {
@@ -26,33 +27,57 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
 }) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(data.photoUrl || null);
   const [photoScale, setPhotoScale] = useState<number>(data.photoScale || 1);
-  const [eventDate, setEventDate] = useState<string>(
-    data.eventDate || new Date().toISOString().split('T')[0]
-  );
-  const [showTithiPicker, setShowTithiPicker] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(HINDU_MONTHS_GUJARATI[0]);
-  const [selectedPaksha, setSelectedPaksha] = useState(HINDU_PAKSHA_GUJARATI[0]);
-  const [selectedTithi, setSelectedTithi] = useState(HINDU_TITHIS_GUJARATI[0]);
+  const [cropSource, setCropSource] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [customTitle, setCustomTitle] = useState('');
+
+  const titleOptions = ['', 'સ્વર્ગસ્થ', 'સ્વર્ગવાસી', 'સ્વ.', 'ગં. સ્વ.', 'નામ :', 'પૂજ્ય', 'દિવંગત'];
+  const selectedTitle = titleOptions.includes(data.title) ? data.title : '__custom__';
+
+  const handleNext = () => {
+    const name = (data.name || '').trim();
+    if (!name) {
+      setNameError('કૃપા કરીને સ્વર્ગસ્થ વ્યક્તિનું નામ દાખલ કરો.');
+      return;
+    }
+    onChange({ name });
+    setNameError(null);
+    onNext();
+  };
+
+  // Ensure dates are valid local browser dates without overwriting user choices
+  useEffect(() => {
+    const today = getTodayLocalDateString();
+    const updates: Partial<DeceasedDetails> = {};
+
+    if (!data.deathDate || !isValidDateString(data.deathDate)) {
+      updates.deathDate = today;
+      updates.weekday = getGujaratiWeekday(today);
+    } else if (!data.weekday) {
+      updates.weekday = getGujaratiWeekday(data.deathDate);
+    }
+
+    if (!data.eventDate || !isValidDateString(data.eventDate)) {
+      updates.eventDate = today;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      onChange(updates);
+    }
+  }, []);
 
   // Recalculate anniversary heading whenever death date or event date changes
   useEffect(() => {
-    if (data.deathDate) {
-      // Calculate Gujarati Weekday if not manually set
-      const calculatedDay = getGujaratiWeekday(data.deathDate);
-      if (!data.weekday) {
-        onChange({ weekday: calculatedDay });
-      }
+    const effectiveDeath = isValidDateString(data.deathDate) ? data.deathDate : getTodayLocalDateString();
+    const effectiveEvent = isValidDateString(data.eventDate || '') ? (data.eventDate as string) : getTodayLocalDateString();
 
-      // Calculate Anniversary Heading if not manually overridden
-      if (!data.isHeadingOverridden) {
-        const result = calculateAnniversary(data.deathDate, eventDate);
-        onChange({
-          heading: result.heading,
-          eventDate: eventDate,
-        });
+    if (!data.isHeadingOverridden) {
+      const result = calculateAnniversary(effectiveDeath, effectiveEvent);
+      if (result.heading && result.heading !== data.heading) {
+        onChange({ heading: result.heading });
       }
     }
-  }, [data.deathDate, eventDate, data.isHeadingOverridden]);
+  }, [data.deathDate, data.eventDate, data.isHeadingOverridden]);
 
   // Handle Photo File Upload
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,8 +86,7 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
-        setPhotoPreview(result);
-        onChange({ photoUrl: result, photoScale: 1, photoXOffset: 0, photoYOffset: 0 });
+        setCropSource(result);
       };
       reader.readAsDataURL(file);
     }
@@ -73,13 +97,15 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
     onChange({ photoUrl: null });
   };
 
-  const handleApplyTithi = () => {
-    const fullTithi = `${selectedMonth} ${selectedPaksha.split(' ')[0]} ${selectedTithi}`;
-    onChange({ tithi: fullTithi });
-    setShowTithiPicker(false);
+  const confirmPhotoCrop = (croppedPhoto: string) => {
+    setPhotoPreview(croppedPhoto);
+    onChange({ photoUrl: croppedPhoto, photoScale: 1, photoXOffset: 0, photoYOffset: 0 });
+    setCropSource(null);
   };
 
-  const anniversaryInfo = calculateAnniversary(data.deathDate, eventDate);
+  const effectiveDeathDate = isValidDateString(data.deathDate) ? data.deathDate : getTodayLocalDateString();
+  const effectiveEventDate = isValidDateString(data.eventDate || '') ? (data.eventDate as string) : getTodayLocalDateString();
+  const anniversaryInfo = calculateAnniversary(effectiveDeathDate, effectiveEventDate);
 
   return (
     <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-brand-sand shadow-sm p-6 sm:p-8 space-y-8">
@@ -93,23 +119,49 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
       </div>
 
       <div className="space-y-6">
-        {/* Name and Honorific */}
+        {/* Name and Honorific Title */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="sm:col-span-1">
             <label className="block text-xs font-bold text-gray-700 mb-1.5 font-gujarati">
               આદરવાચક શબ્દ
             </label>
             <select
-              value={data.title}
-              onChange={(e) => onChange({ title: e.target.value })}
+              value={selectedTitle}
+              onChange={(e) => {
+                if (e.target.value === '__custom__') {
+                  setCustomTitle('');
+                  onChange({ title: '' });
+                } else {
+                  onChange({ title: e.target.value });
+                }
+              }}
               className="w-full px-3 py-2.5 text-sm bg-brand-cream/60 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati"
             >
+              <option value="">કોઈ ઉપસર્ગ નહીં</option>
               <option value="સ્વર્ગસ્થ">સ્વર્ગસ્થ</option>
+              <option value="સ્વર્ગવાસી">સ્વર્ગવાસી</option>
               <option value="સ્વ.">સ્વ.</option>
-              <option value="ગં.સ્વ.">ગં.સ્વ. (ગંગાસ્વરૂપ)</option>
+              <option value="નામ :">નામ :</option>
+              <option value="ગં. સ્વ.">ગં. સ્વ. (ગંગાસ્વરૂપ)</option>
               <option value="પૂજ્ય">પૂજ્ય</option>
               <option value="દિવંગત">દિવંગત</option>
+              <option value="__custom__">અન્ય ઉપસર્ગ</option>
             </select>
+            {selectedTitle === '__custom__' && (
+              <input
+                type="text"
+                value={customTitle || data.title}
+                onChange={(event) => {
+                  setCustomTitle(event.target.value);
+                  onChange({ title: event.target.value });
+                }}
+                placeholder="તમારો ઉપસર્ગ લખો"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-gujarati"
+              />
+            )}
+            <p className="mt-2 text-[11px] leading-relaxed text-gray-500 font-gujarati">
+              સ્વ. એ સ્વર્ગસ્થનો સંક્ષેપ છે અને સ્ત્રી કે પુરુષ બંને માટે વાપરી શકાય છે. સ્વર્ગસ્થ / સ્વર્ગવાસી પણ પસંદ કરી શકો. ગં. સ્વ. (ગંગાસ્વરૂપ) સામાન્ય રીતે વિધવા માટે છે; આ આપમેળે લાગુ પડતું નથી. લી. માત્ર પરિવાર વિભાગનું શીર્ષક છે, નામનો ઉપસર્ગ નથી. ખાતરી ન હોય તો ઉપસર્ગ ખાલી રાખો.
+            </p>
           </div>
 
           <div className="sm:col-span-3">
@@ -118,19 +170,25 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="ઉદા. પટેલ મગનભાઈ કેશવલાલ"
-              value={data.name}
-              onChange={(e) => onChange({ name: e.target.value })}
+              placeholder="સ્વર્ગસ્થનું પૂરું નામ દાખલ કરો"
+              value={data.name || ''}
+              onChange={(e) => {
+                onChange({ name: e.target.value });
+                if (e.target.value.trim()) setNameError(null);
+              }}
+              onBlur={(e) => onChange({ name: e.target.value.trim() })}
               className="w-full px-4 py-2.5 text-sm bg-brand-cream/60 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati font-semibold text-gray-900"
               required
+              aria-invalid={Boolean(nameError)}
             />
+            {nameError && <p role="alert" className="mt-1 text-xs text-red-600 font-gujarati">{nameError}</p>}
           </div>
         </div>
 
-        {/* Photo Upload with Zoom and Reposition */}
+        {/* Photo Upload with Zoom and Pan */}
         <div className="p-4 rounded-xl border border-dashed border-brand-gold/60 bg-brand-cream/30 space-y-3">
           <label className="block text-xs font-bold text-brand-maroon font-gujarati">
-            સ્વર્ગસ્થનો ફોટોગ્રાફ
+            સ્વર્ગસ્થનો ફોટોગ્રાફ (ઓપ્શનલ)
           </label>
           <div className="flex flex-col sm:flex-row items-center gap-5">
             {photoPreview ? (
@@ -167,11 +225,18 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
 
             <div className="flex-1 space-y-2 text-center sm:text-left">
               <p className="text-xs text-gray-600 font-gujarati">
-                સ્પષ્ટ ફોટોગ્રાફ અપલોડ કરો (JPG, PNG). આપ ફોટોને ઝૂમ અને સેટ કરી શકો છો.
+                સ્પષ્ટ ફોટોગ્રાફ અપલોડ કરો (JPG, PNG). જો ફોટો અપલોડ ન કરો તો કાર્ડ પર કોઈ ખાલી જગ્યા નહીં રહે.
               </p>
               {photoPreview && (
-                <div className="flex items-center justify-center sm:justify-start gap-3 pt-1">
-                  <span className="text-xs text-gray-500">ઝૂમ:</span>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setCropSource(photoPreview)}
+                    className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-gujarati"
+                  >
+                    <Crop className="h-4 w-4" /> ફોટો કાપો / ફેરવો
+                  </button>
+                  <span className="text-xs text-gray-500 font-gujarati">ઝૂમ:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -210,7 +275,7 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
               <Calendar className="w-4 h-4 text-amber-700" />
               <span>અવસાન તારીખ અને સ્માર્ટ વાર્ષિક કેલ્ક્યુલેટર</span>
             </h3>
-            <span className="text-[11px] bg-amber-100 text-amber-800 font-medium px-2 py-0.5 rounded-full">
+            <span className="text-[11px] bg-amber-100 text-amber-800 font-medium px-2 py-0.5 rounded-full font-gujarati">
               ઓટોમેટિક ગણતરી
             </span>
           </div>
@@ -222,11 +287,15 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
               </label>
               <input
                 type="date"
-                value={data.deathDate}
+                value={data.deathDate || getTodayLocalDateString()}
                 onChange={(e) => {
                   const newDate = e.target.value;
-                  const weekday = getGujaratiWeekday(newDate);
-                  onChange({ deathDate: newDate, weekday });
+                  if (isValidDateString(newDate)) {
+                    const weekday = getGujaratiWeekday(newDate);
+                    onChange({ deathDate: newDate, weekday });
+                  } else {
+                    onChange({ deathDate: newDate });
+                  }
                 }}
                 className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-sans"
                 required
@@ -240,15 +309,15 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={data.weekday}
+                  value={data.weekday || ''}
                   onChange={(e) => onChange({ weekday: e.target.value })}
-                  placeholder="ઉદા. સોમવાર"
+                  placeholder="ઉદા. ગુરુવાર"
                   className="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati"
                 />
                 <button
                   type="button"
                   onClick={() => {
-                    if (data.deathDate) {
+                    if (data.deathDate && isValidDateString(data.deathDate)) {
                       onChange({ weekday: getGujaratiWeekday(data.deathDate) });
                     }
                   }}
@@ -269,8 +338,8 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
               </label>
               <input
                 type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
+                value={data.eventDate || getTodayLocalDateString()}
+                onChange={(e) => onChange({ eventDate: e.target.value })}
                 className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none"
               />
               <p className="text-[11px] text-gray-500 mt-1 font-gujarati">
@@ -284,7 +353,7 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
               </label>
               <input
                 type="text"
-                value={data.heading}
+                value={data.heading || ''}
                 onChange={(e) =>
                   onChange({ heading: e.target.value, isHeadingOverridden: true })
                 }
@@ -294,7 +363,7 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const result = calculateAnniversary(data.deathDate, eventDate);
+                    const result = calculateAnniversary(effectiveDeathDate, effectiveEventDate);
                     onChange({ heading: result.heading, isHeadingOverridden: false });
                   }}
                   className="text-[11px] text-amber-700 hover:underline mt-1 font-gujarati block"
@@ -309,70 +378,10 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
         {/* Hindu Tithi & Village */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-gray-700 font-gujarati">
-                હિન્દુ તિથિ (ઓપ્શનલ)
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowTithiPicker(!showTithiPicker)}
-                className="text-xs text-brand-saffron font-bold hover:underline font-gujarati"
-              >
-                {showTithiPicker ? 'બંધ કરો' : 'તિથિ પસંદ કરો'}
-              </button>
-            </div>
-
-            <input
-              type="text"
-              placeholder="ઉદા. કાર્તક સુદ એકમ"
-              value={data.tithi}
-              onChange={(e) => onChange({ tithi: e.target.value })}
-              className="w-full px-4 py-2.5 text-sm bg-brand-cream/60 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati"
-            />
-
-            {/* Quick Hindu Tithi Picker Dropdown */}
-            {showTithiPicker && (
-              <div className="mt-2 p-3 bg-white rounded-xl border border-brand-gold shadow-md space-y-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="text-xs p-1.5 border rounded-lg bg-gray-50 font-gujarati"
-                  >
-                    {HINDU_MONTHS_GUJARATI.map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedPaksha}
-                    onChange={(e) => setSelectedPaksha(e.target.value)}
-                    className="text-xs p-1.5 border rounded-lg bg-gray-50 font-gujarati"
-                  >
-                    {HINDU_PAKSHA_GUJARATI.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedTithi}
-                    onChange={(e) => setSelectedTithi(e.target.value)}
-                    className="text-xs p-1.5 border rounded-lg bg-gray-50 font-gujarati"
-                  >
-                    {HINDU_TITHIS_GUJARATI.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleApplyTithi}
-                  className="w-full py-1 text-xs bg-brand-saffron text-white rounded-lg font-bold"
-                >
-                  તિથિ લાગુ કરો
-                </button>
-              </div>
-            )}
+            <label className="block text-xs font-bold text-gray-700 mb-1.5 font-gujarati">
+              હિન્દુ તિથિ (ઓપ્શનલ)
+            </label>
+            <TithiFields data={data} onChange={onChange} />
           </div>
 
           <div>
@@ -381,8 +390,8 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="ઉદા. વાંકાનેર"
-              value={data.village}
+              placeholder="ગામનું નામ દાખલ કરો"
+              value={data.village || ''}
               onChange={(e) => onChange({ village: e.target.value })}
               className="w-full px-4 py-2.5 text-sm bg-brand-cream/60 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati"
               required
@@ -398,7 +407,7 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="ઉદા. મોરબી"
+              placeholder="તાલુકો અથવા શહેર લખો"
               value={data.talukaCity || ''}
               onChange={(e) => onChange({ talukaCity: e.target.value })}
               className="w-full px-4 py-2.5 text-sm bg-brand-cream/60 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none font-gujarati"
@@ -416,23 +425,30 @@ export const ShradhanjaliForm: React.FC<ShradhanjaliFormProps> = ({
               className="w-full px-4 py-2.5 text-sm bg-brand-cream/60 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-saffron focus:outline-none"
             />
           </div>
+          {cropSource && (
+            <PhotoCropDialog
+              source={cropSource}
+              onConfirm={confirmPhotoCrop}
+              onCancel={() => setCropSource(null)}
+            />
+          )}
         </div>
       </div>
 
       {/* Navigation Footer */}
-      <div className="pt-6 border-t border-gray-200 flex items-center justify-between">
+      <div className="pt-6 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
-          className="px-6 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 font-gujarati text-center"
         >
           પાછા જાઓ
         </button>
 
         <button
           type="button"
-          onClick={onNext}
-          className="px-8 py-2.5 rounded-xl bg-brand-saffron text-white text-sm font-bold hover:bg-brand-saffronDark shadow-md flex items-center gap-2"
+          onClick={handleNext}
+          className="w-full sm:w-auto px-4 sm:px-8 py-2.5 rounded-xl bg-brand-saffron text-white text-sm font-bold hover:bg-brand-saffronDark shadow-md flex items-center justify-center gap-2 font-gujarati text-center"
         >
           <span>આગળ વધો (સંદેશ પસંદ કરો)</span>
           <Check className="w-4 h-4 stroke-[3]" />
