@@ -10,7 +10,6 @@ import {
   Sparkles,
   Check,
   Eye,
-  Sliders,
   ChevronDown,
   X,
   Instagram,
@@ -64,7 +63,6 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<AspectRatioFormat>('4:5');
-  const [mobileView, setMobileView] = useState<'preview' | 'controls'>('preview');
   const [isRendering, setIsRendering] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccessMessage, setDownloadSuccessMessage] = useState<string | null>(null);
@@ -280,7 +278,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         format,
         templateId: template.id,
         status: 'failed',
-        errorCategory: err instanceof Error ? err.message : String(err),
+        errorCategory: err instanceof Error ? err.name : 'UnknownError',
       });
     } finally {
       setIsDownloading(false);
@@ -290,27 +288,27 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
   const currentDims = FORMAT_DIMENSIONS[selectedFormat];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+    <div className="mx-auto flex h-[calc(100dvh_-_15rem_-_env(safe-area-inset-bottom))] min-h-0 max-w-7xl flex-col space-y-2 sm:space-y-6 lg:h-auto">
       {/* Top Header & Aspect Ratio Selector Bar */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 rounded-2xl border border-brand-sand bg-white p-4 sm:p-5 shadow-xs">
+      <div className="flex shrink-0 flex-col items-center justify-between gap-2 rounded-2xl border border-brand-sand bg-white p-3 shadow-xs sm:gap-4 sm:p-5 lg:flex-row">
         <div>
           <h2 className="flex items-center gap-2 font-serifGujarati text-base font-bold text-brand-maroon sm:text-xl">
             <Eye className="h-5 w-5 text-brand-saffron" />
             <span>લાઈવ પૂર્વદર્શન અને અંતિમ એડિટર</span>
           </h2>
-          <p className="mt-0.5 font-gujarati text-xs text-gray-500">
+          <p className="mt-0.5 hidden font-gujarati text-xs text-gray-500 sm:block">
             જેવું અહીં દેખાશે તેવું જ હાઈ-ડેફિનેશનમાં ડાઉનલોડ થશે.
           </p>
         </div>
 
         {/* Aspect Ratio / Format Selector */}
-        <div className="grid w-full grid-cols-2 sm:flex sm:w-auto items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-100 p-1.5">
+        <div className="grid w-full grid-cols-4 items-center gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1 sm:flex sm:w-auto sm:gap-1.5 sm:p-1.5">
           {(['4:5', '9:16', '2:3', 'A4'] as AspectRatioFormat[]).map((fmt) => (
             <button
               key={fmt}
               type="button"
               onClick={() => setSelectedFormat(fmt)}
-              className={`rounded-lg px-2 py-2 text-center text-[11px] font-bold leading-tight transition-all sm:px-3 sm:py-1.5 sm:text-xs ${
+              className={`rounded-lg px-1 py-1.5 text-center text-[10px] font-bold leading-tight transition-all sm:px-3 sm:py-1.5 sm:text-xs ${
                 selectedFormat === fmt
                   ? 'bg-white text-brand-maroon shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -325,47 +323,15 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         </div>
       </div>
 
-      {/* Mobile Tab Switcher: Preview vs Settings */}
-      <div className="grid grid-cols-2 gap-1 rounded-xl border border-brand-sand bg-white p-1 shadow-xs lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileView('preview')}
-          aria-pressed={mobileView === 'preview'}
-          className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center font-gujarati text-xs font-bold leading-tight transition-all ${
-            mobileView === 'preview'
-              ? 'bg-brand-maroon text-white shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <Eye className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 whitespace-normal">કાર્ડ પૂર્વદર્શન</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMobileView('controls')}
-          aria-pressed={mobileView === 'controls'}
-          className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-center font-gujarati text-xs font-bold leading-tight transition-all ${
-            mobileView === 'controls'
-              ? 'bg-brand-maroon text-white shadow-xs'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <Sliders className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 whitespace-normal">સેટિંગ્સ અને ડાઉનલોડ</span>
-        </button>
-      </div>
-
-      {/* Main Studio Area: Two-Column Desktop / Mobile Responsive */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Mobile uses a fixed preview row and an independently scrolling settings row. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,min(35dvh,60%))_minmax(0,1fr)] items-stretch gap-3 lg:grid-cols-12 lg:grid-rows-none lg:items-start lg:gap-8">
         {/* LEFT COLUMN: Sticky Card Preview on Desktop */}
         <div
-          className={`lg:col-span-7 flex flex-col items-center lg:sticky lg:top-24 ${
-            mobileView === 'preview' ? 'flex' : 'hidden lg:flex'
-          }`}
+          className="flex h-full min-h-0 flex-col items-center lg:col-span-7 lg:h-auto lg:sticky lg:top-24"
         >
-          <div className="relative flex w-full flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:rounded-3xl sm:border-4 sm:p-6">
+          <div className="relative flex h-full min-h-0 w-full flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:rounded-3xl sm:border-4 sm:p-6 lg:h-auto">
             {/* Dimensions Pill Indicator */}
-            <div className="mb-3 flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] text-white backdrop-blur-md">
+            <div className="mb-1 flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] text-white backdrop-blur-md sm:mb-3">
               <Smartphone className="h-3.5 w-3.5 text-brand-gold" />
               <span>
                 {currentDims.name} • {currentDims.gujaratiName}
@@ -374,12 +340,12 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
 
             {/* Canvas Container with Proper Centering */}
             <div
-              className="flex w-full max-w-[480px] items-center justify-center"
-              style={{ aspectRatio: `${currentDims.width} / ${currentDims.height}` }}
+              className="flex min-h-0 w-full max-w-[480px] flex-1 items-center justify-center lg:flex-none"
             >
               <canvas
                 ref={canvasRef}
-                className="max-h-[70vh] max-w-full rounded-lg border border-stone-700 bg-white object-contain shadow-xl sm:max-h-[640px]"
+                data-testid="card-live-preview"
+                className="max-h-full max-w-full rounded-lg border border-stone-700 bg-white object-contain shadow-xl lg:max-h-[640px]"
                 style={{
                   aspectRatio: `${currentDims.width} / ${currentDims.height}`,
                 }}
@@ -394,41 +360,14 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
               </div>
             )}
           </div>
-
-          {/* Quick Mobile Action to Edit / Download */}
-          <div className="mt-4 flex w-full justify-center lg:hidden">
-            <button
-              type="button"
-              onClick={() => setMobileView('controls')}
-              className="w-full rounded-xl bg-brand-maroon px-4 py-3 font-gujarati text-xs font-bold text-white shadow-md active:scale-[0.98]"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <Sliders className="h-4 w-4 text-brand-gold" />
-                <span>સેટિંગ્સ અને ડાઉનલોડ</span>
-              </span>
-            </button>
-          </div>
         </div>
 
         {/* RIGHT COLUMN: Scrollable Editing Controls Panel */}
         <div
-          className={`lg:col-span-5 space-y-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-2 ${
-            mobileView === 'controls' ? 'block' : 'hidden lg:block'
-          }`}
+          data-testid="editor-settings-panel"
+          className="min-h-0 space-y-6 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] lg:col-span-5 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-2"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {/* Quick Mobile Action to Preview */}
-          <div className="flex w-full flex-col items-stretch gap-2 rounded-xl border border-brand-sand bg-brand-cream/60 p-3 sm:flex-row sm:items-center sm:justify-between lg:hidden">
-            <span className="font-gujarati text-xs font-semibold text-gray-700">પૂર્વદર્શન જોવા માંગો છો?</span>
-            <button
-              type="button"
-              onClick={() => setMobileView('preview')}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-maroon px-3 py-2 font-gujarati text-xs font-bold text-white shadow-xs active:scale-[0.98] sm:shrink-0"
-            >
-              <Eye className="h-3.5 w-3.5 text-brand-gold" />
-              <span>કાર્ડ જુઓ ➔</span>
-            </button>
-          </div>
-
           {/* Download Action Card */}
           <div className="space-y-4 rounded-2xl bg-gradient-to-br from-brand-maroon via-brand-maroonDark to-stone-900 p-4 text-white shadow-lg sm:p-6">
             <div>

@@ -21,7 +21,7 @@ export const Footer: React.FC = () => {
               </div>
             </div>
             <p className="text-sm text-gray-300 font-gujarati leading-relaxed max-w-md">
-              ગુજરાતી સંસ્કૃતિ, પરંપરા અને લાગણીઓને અનુરૂપ પવિત્ર શ્રદ્ધાંજલિ, બેસણું અને પુણ્યતિથિ કાર્ડ બનાવવાનું ભારતનું પ્રથમ સ્માર્ટ પ્લેટફોર્મ.
+              ગુજરાતી સંસ્કૃતિ અને પરંપરાને અનુરૂપ શ્રદ્ધાંજલિ, બેસણું અને પુણ્યતિથિ કાર્ડ બનાવવા માટેની ઓનલાઇન સેવા.
             </p>
             <div className="flex items-center gap-2 text-xs text-brand-gold bg-brand-charcoal/80 border border-brand-gold/30 px-3 py-1.5 rounded-full w-fit">
               <Sparkles className="w-3.5 h-3.5" />
@@ -60,6 +60,16 @@ export const Footer: React.FC = () => {
                   ૨૦૦+ ગુજરાતી શોક સંદેશ લાઈબ્રેરી
                 </Link>
               </li>
+              <li>
+                <Link href="/shradhanjali-maker/" className="hover:text-brand-saffron transition-colors">
+                  શ્રદ્ધાંજલિ કાર્ડ બનાવવાની રીત
+                </Link>
+              </li>
+              <li>
+                <Link href="/besna-card-maker/" className="hover:text-brand-saffron transition-colors">
+                  બેસણું કાર્ડ બનાવવાની રીત
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -80,9 +90,13 @@ export const Footer: React.FC = () => {
 
         <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
           <p>© {new Date().getFullYear()} અડોણી કાયા (ADONI KAYA). સર્વાધિકાર સુરક્ષિત.</p>
-          <p className="flex items-center gap-1">
-            ગુજરાતી ગૌરવ સાથે નિર્મિત <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline" />
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link href="/about/" className="hover:text-white">અમારા વિશે</Link>
+            <Link href="/privacy-policy/" className="hover:text-white">ગોપનીયતા નીતિ</Link>
+            <p className="flex items-center gap-1">
+              ગુજરાતી ગૌરવ સાથે નિર્મિત <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline" />
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -1,27 +1,36 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://krishdesai.github.io/AdoniKaya';
-  const currentDate = new Date().toISOString();
+  const baseUrl = 'https://adonikaya.github.io/ADONI_KAYA';
 
   return [
     {
-      url: baseUrl,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
+      url: `${baseUrl}/`,
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/gallery`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
+      url: `${baseUrl}/gallery/`,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/quotes`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
+      url: `${baseUrl}/quotes/`,
       priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/shradhanjali-maker/`,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/besna-card-maker/`,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/about/`,
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/privacy-policy/`,
+      priority: 0.4,
     },
   ];
 }

@@ -6,9 +6,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/'],
       },
     ],
-    sitemap: 'https://krishdesai.github.io/AdoniKaya/sitemap.xml',
+    sitemap: 'https://adonikaya.github.io/ADONI_KAYA/sitemap.xml',
   };
 }

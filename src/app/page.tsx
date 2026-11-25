@@ -41,8 +41,8 @@ function createInitialDeceased(): DeceasedDetails {
     photoScale: 1,
     photoXOffset: 0,
     photoYOffset: 0,
-    includeFlowers: false,
-    includeDiya: false,
+    includeFlowers: true,
+    includeDiya: true,
     useRealDiyas: false,
     useRealFlowers: false,
     useRealFrames: false,
@@ -253,7 +253,11 @@ function HomePageContent() {
     },
     {
       q: 'રબારી શૈલી કલેક્શનની ખાસિયત શું છે?',
-      a: 'કચ્છ અને સૌરાષ્ટ્રના પરંપરાગત ભરતકામ, આભલા વર્ક (મિરર વર્ક) અને લોકસંસ્કૃતિના સાચા મોટિફ્સ સાથે બનાવેલા વિશેષ ડિજિટલ ફ્રેમ્સ જે આપના સ્વજનને ગૌરવપૂર્ણ શ્રદ્ધાંજલિ આપે છે.',
+      a: 'રબારી શૈલીના ડિઝાઇન્સમાં કચ્છ અને સૌરાષ્ટ્રના પરંપરાગત ભરતકામ તથા આભલા-શૈલીથી પ્રેરિત રંગો અને મોટિફ્સનો ઉપયોગ થાય છે.',
+    },
+    {
+      q: 'શું મારી કાર્ડની વિગતો અડોણી કાયાના સર્વર પર સાચવાય છે?',
+      a: 'કાર્ડની વિગતો અને ફોટા એપ્લિકેશન દ્વારા સર્વર પર મોકલાતા નથી. ફરી કામ ચાલુ રાખવા માટે ડ્રાફ્ટ તમારા બ્રાઉઝરના સ્થાનિક સ્ટોરેજમાં રહી શકે છે; તેને દૂર કરવા માટે બ્રાઉઝરની આ સાઇટ માટેની સંગ્રહિત માહિતી સાફ કરો.',
     },
   ];
 
@@ -455,7 +459,7 @@ function HomePageContent() {
                   લોકપ્રિય ગુજરાતી ટેમ્પલેટ્સ
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600 font-gujarati">
-                  હજારો પરિવારો દ્વારા પસંદ કરાયેલ શ્રેષ્ઠ પવિત્ર ડિઝાઇન્સ
+                  શ્રદ્ધાંજલિ, બેસણું અને અન્ય પ્રસંગો માટે ઉપલબ્ધ ગુજરાતી ડિઝાઇન્સ.
                 </p>
               </div>
 
@@ -468,7 +472,7 @@ function HomePageContent() {
                 }}
                 className="text-xs sm:text-sm font-bold text-brand-saffron hover:underline flex items-center gap-1 font-gujarati self-start sm:self-auto"
               >
-                <span>તમામ ૧,૦૦૦+ ટેમ્પલેટ્સ જુઓ</span>
+                <span>તમામ ૧૫૪ ટેમ્પલેટ્સ જુઓ</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -563,7 +567,7 @@ function HomePageContent() {
                   માત્ર ૪ સરળ પગલાંમાં કાર્ડ તૈયાર
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 font-gujarati">
-                  કોઈપણ ડિઝાઇનરની જરૂર વિના ૨ મિનિટમાં મોબાઇલ પરથી બનાવો
+                  મોબાઇલ અથવા કમ્પ્યુટર પર સરળતાથી કાર્ડ તૈયાર કરો
                 </p>
               </div>
 
@@ -626,7 +630,7 @@ function HomePageContent() {
                 શા માટે અડોણી કાયા?
               </h2>
               <p className="text-xs sm:text-sm text-gray-500 font-gujarati">
-                ગુજરાતી લાગણીઓ અને સંસ્કૃતિને સમર્પિત ભારતનું અગ્રણી પ્લેટફોર્મ
+                ગુજરાતી શ્રદ્ધાંજલિ અને બેસણું કાર્ડ બનાવવા માટેની ઓનલાઇન સેવા
               </p>
             </div>
 
@@ -717,7 +721,30 @@ function HomePageContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-gujarati">પૃષ્ઠ લોડ થઈ રહ્યું છે...</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-4xl space-y-5 px-4 py-16 text-center sm:px-6">
+          <h1 className="font-serifGujarati text-3xl font-black text-brand-maroon sm:text-5xl">
+            Free Gujarati Shradhanjali and Besna Card Maker
+          </h1>
+          <p className="font-gujarati leading-8 text-gray-700">
+            અડોણી કાયા પર ગુજરાતી શ્રદ્ધાંજલિ અને બેસણું કાર્ડ મફતમાં બનાવો. ડિઝાઇન પસંદ કરો,
+            વિગતો ઉમેરો અને PNG, JPG અથવા PDF રૂપે ડાઉનલોડ કરો.
+          </p>
+          <nav aria-label="Card maker guides" className="flex flex-wrap justify-center gap-4">
+            <Link className="text-brand-saffron underline" href="/shradhanjali-maker/">
+              શ્રદ્ધાંજલિ કાર્ડ બનાવવાની રીત
+            </Link>
+            <Link className="text-brand-saffron underline" href="/besna-card-maker/">
+              બેસણું કાર્ડ બનાવવાની રીત
+            </Link>
+            <Link className="text-brand-saffron underline" href="/gallery/">
+              ટેમ્પલેટ ગેલેરી જુઓ
+            </Link>
+          </nav>
+        </div>
+      }
+    >
       <HomePageContent />
     </Suspense>
   );

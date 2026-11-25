@@ -1,6 +1,6 @@
 # અડોણી કાયા (ADONI KAYA)
 > **ગુજરાતી ડિઝાઇન હવે સૌ માટે સરળ!**
-> A complete Gujarati memorial design platform, smart template system, and graphic design automation engine.
+> A browser-based Gujarati Shradhanjali, Besna, and Punyatithi card maker.
 
 ---
 
@@ -19,7 +19,7 @@ https://adonikaya.github.io/ADONI_KAYA/
 
 ## 🛠️ Key Features Implemented
 
-### 1. 🌺 Authentic Gujarati First Homepage & Navigation
+### 1. 🌺 Gujarati-First Homepage & Navigation
 - Original brand identity: **અડોણી કાયા** with subtitle **ADONI KAYA**.
 - Tagline: **ગુજરાતી ડિઝાઇન હવે સૌ માટે સરળ!**
 - Exactly two primary creation actions:
@@ -28,19 +28,9 @@ https://adonikaya.github.io/ADONI_KAYA/
 - Popular templates showcase with direct creation shortcuts.
 - How it works (૪ સરળ પગલાં) and FAQs (વારંવાર પૂછાતા પ્રશ્નો).
 
-### 2. 🎨 Target 1,000+ Template Gallery & Rabari Style Collection
-- Separate galleries for Shradhanjali and Besna.
-- Multi-category support:
-  - શ્રદ્ધાંજલિ (300+ target collection)
-  - બેસણું (250+ target collection)
-  - શોક સભા (150+ target collection)
-  - તેરવી / દશક્રિયા (100+ target collection)
-  - પુણ્યતિથિ (100+ target collection)
-- **Dedicated Rabari Style Collection**:
-  - Kutchi & Saurashtra traditional embroidery borders.
-  - Procedural "Aabhla" mirror-work with reflective circular stitch rings.
-  - Geometric folk art motifs and sacred symbols (ૐ, કળશ, દીવો, સાથિયો).
-- Real-time search by Gujarati and English keywords, filters, and instant card preview.
+### 2. 🎨 154 Card Templates
+- Shradhanjali, Besna, Punyatithi, Shok Sabha, Tervi/Dashkriya, and Rabari-style designs.
+- Search, category filters, and a live card preview.
 
 ### 3. 📱 Mobile-First Template Dimensions
 - **Primary Social Sharing Format**: `1080 × 1350` (4:5 portrait) — optimized for WhatsApp, Facebook, Instagram.
@@ -62,8 +52,8 @@ https://adonikaya.github.io/ADONI_KAYA/
 - Gujarati Hindu Tithi picker (સુદ / વદ + ૧ થી ૧૫) + manual entry.
 - Manual override support with single-click restore.
 
-### 5. 📖 200+ Culturally Authentic Gujarati Quote Library (`quotes.ts`)
-- Over 250 verified, original, grammatically reviewed Gujarati remembrance and condolence messages.
+### 5. 📖 Gujarati Quote Library (`quotes.ts`)
+- 256 Gujarati remembrance and condolence messages.
 - Comprehensive categories:
   - માતા માટે શ્રદ્ધાંજલિ
   - પિતા માટે શ્રદ્ધાંજલિ
@@ -91,23 +81,36 @@ https://adonikaya.github.io/ADONI_KAYA/
 - Bottom banner: `|| સમસ્ત XYZ પરિવાર (ગામ: XYZ) ||`.
 - Optional show/hide toggle.
 
-### 8. 🖼️ Smart Template Creator (Admin Dashboard)
-- Upload existing JPG/PNG card designs or blank backgrounds.
-- AI-assisted element detection simulation (header, photo box, name, dates, quote, family grid, footer).
-- Background cleanup tools:
-  - AI inpainting & text removal.
-  - Manual eraser brush with adjustable radius.
-  - Brush restoration from original image.
-  - Undo / Redo history stack.
-  - Press-and-hold original image comparison.
-- Interactive placeholder configuration (x, y, font size, color).
-- Publish or save as draft.
+### 8. 🖼️ Browser-Based Card Editor
+- Live canvas preview with editable card details and family layout.
+- Optional photo crop and design adjustments.
+- Card generation and downloads run in the browser.
 
 ### 9. 🖨️ High-Resolution Export System (`exportEngine.ts`)
 - Crisp canvas rendering with 2.0x - 2.5x export scaling.
 - Export formats:
   - **PNG** (lossless crisp typography)
   - **JPG** (optimized for instant WhatsApp sharing)
-  - **PDF** (vector-scaled for home and commercial printing)
+  - **PDF** (A4 card download)
 
 ---
+
+  ## Search Console and Indexing
+
+  The HTML verification tag is included in the site layout. To verify the site:
+
+  1. In Google Search Console, add a URL-prefix property for `https://adonikaya.github.io/ADONI_KAYA/`.
+  2. Push the site changes and wait for the GitHub Pages deployment to complete.
+  3. Use the HTML-tag verification method and select **Verify**.
+  4. Submit `https://adonikaya.github.io/ADONI_KAYA/sitemap.xml` in the Sitemaps section.
+  5. Use URL Inspection to inspect the homepage and request indexing for the public guide pages.
+
+  The generated project-level robots file is at
+  `https://adonikaya.github.io/ADONI_KAYA/robots.txt`. A GitHub Pages project site cannot
+  publish the domain-root `https://adonikaya.github.io/robots.txt` from this repository;
+  that requires a custom domain or the account's user-site repository.
+
+  Public guides: [Shradhanjali maker](https://adonikaya.github.io/ADONI_KAYA/shradhanjali-maker/),
+  [Besna card maker](https://adonikaya.github.io/ADONI_KAYA/besna-card-maker/),
+  [About](https://adonikaya.github.io/ADONI_KAYA/about/), and
+  [Privacy Policy](https://adonikaya.github.io/ADONI_KAYA/privacy-policy/).

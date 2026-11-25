@@ -1,11 +1,5 @@
 /**
- * Client-side anonymous analytics tracker for ADONI KAYA (અડોણી કાયા)
- *
- * PRIVACY GUARANTEE:
- * Absolutely NO personal data (no names, no photos, no phone numbers,
- * no villages/addresses, no message texts) is ever collected or transmitted.
- * Only coarse operational events (workflow step, format selected, anonymous session id)
- * are recorded for website usage analytics.
+ * Optional client-side usage analytics. Card details and photographs are never included.
  */
 
 export type AnalyticsEventType =
@@ -33,12 +27,19 @@ export interface AnalyticsPayload {
 function getAnonymousSessionId(): string {
   if (typeof window === 'undefined') return '';
   const KEY = 'adoni_kaya_anon_sid';
-  let sid = localStorage.getItem(KEY);
-  if (!sid) {
-    sid = 'sid_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
-    localStorage.setItem(KEY, sid);
+  const createId = () =>
+    'sid_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
+
+  try {
+    const storedId = window.localStorage.getItem(KEY);
+    if (storedId) return storedId;
+
+    const newId = createId();
+    window.localStorage.setItem(KEY, newId);
+    return newId;
+  } catch {
+    return createId();
   }
-  return sid;
 }
 
 // Detect coarse device category without tracking user agent details
@@ -51,13 +52,11 @@ function getDeviceCategory(): 'Mobile' | 'Tablet' | 'Desktop' {
 }
 
 /**
- * Tracks an anonymous usage event.
- * If NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL is provided, sends to Google Apps Script.
- * Also attempts local /api/analytics if running in server runtime.
- * Never throws or interrupts user actions on failure.
+ * Sends limited usage events only when a Google Apps Script endpoint is configured.
  */
 export async function trackEvent(payload: AnalyticsPayload): Promise<void> {
-  if (typeof window === 'undefined') return;
+  const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
+  if (typeof window === 'undefined' || !scriptUrl) return;
 
   const sessionId = getAnonymousSessionId();
   const device = getDeviceCategory();
@@ -76,37 +75,16 @@ export async function trackEvent(payload: AnalyticsPayload): Promise<void> {
     errorCategory: payload.errorCategory || '',
   };
 
-  const scriptUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
-
-  // 1. If Google Apps Script Web App URL is configured in client env
-  if (scriptUrl) {
-    try {
-      await fetch(scriptUrl, {
-        method: 'POST',
-        mode: 'no-cors', // allows cross-origin submission to Google Apps Script
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(record),
-      });
-      return;
-    } catch (e) {
-      // Graceful fallback - analytics failure never impacts the user
-      console.warn('Analytics webhook dispatch error (safe fallback)', e);
-    }
-  }
-
-  // 2. If running under server runtime with /api/analytics available
   try {
-    const apiEndpoint = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/analytics`;
-    await fetch(apiEndpoint, {
+    await fetch(scriptUrl, {
       method: 'POST',
+      mode: 'no-cors',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain;charset=UTF-8',
       },
       body: JSON.stringify(record),
     });
   } catch (e) {
-    // Gracefully ignore network/endpoint unavailability (e.g. on static GitHub Pages)
+    console.warn('Analytics webhook dispatch failed', e);
   }
 }

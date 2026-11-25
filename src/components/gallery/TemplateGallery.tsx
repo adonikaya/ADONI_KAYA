@@ -13,7 +13,7 @@ interface TemplateGalleryProps {
 }
 
 const CATEGORY_TABS: { id: string; name: string }[] = [
-  { id: 'all', name: 'બધા ટેમ્પલેટ્સ (૧૦૦+)' },
+  { id: 'all', name: 'બધા ટેમ્પલેટ્સ (૧૫૪)' },
   { id: 'shradhanjali', name: 'શ્રદ્ધાંજલિ' },
   { id: 'peaceful-floral', name: 'પુષ્પાંજલિ / ફૂલ-હાર' },
   { id: 'temple-sacred', name: 'અગરબત્તી & દિવો' },
