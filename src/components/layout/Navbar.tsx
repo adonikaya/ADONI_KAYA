@@ -69,6 +69,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onSelectFlow }) => {
               <span>રબારી કલેક્શન</span>
             </Link>
 
+            <Link
+              href="/about/"
+              className="px-3 py-2 rounded-lg text-sm font-medium text-brand-charcoal/80 hover:text-brand-saffron hover:bg-brand-saffronLight transition-colors"
+            >
+              અમારા વિશે
+            </Link>
+
           </nav>
 
           {/* Mobile menu button */}
@@ -118,6 +125,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onSelectFlow }) => {
           >
             <Palette className="w-5 h-5 text-amber-600" />
             <span>રબારી શૈલી કલેક્શન</span>
+          </Link>
+          <Link
+            href="/about/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-base font-medium text-brand-charcoal hover:bg-brand-saffronLight"
+          >
+            <span>અમારા વિશે</span>
           </Link>
         </div>
       )}

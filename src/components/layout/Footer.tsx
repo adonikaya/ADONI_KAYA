@@ -93,6 +93,7 @@ export const Footer: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/about/" className="hover:text-white">અમારા વિશે</Link>
             <Link href="/privacy-policy/" className="hover:text-white">ગોપનીયતા નીતિ</Link>
+            <a href="mailto:adonikaya@gmail.com" className="hover:text-white">ઈમેલથી સંપર્ક કરો</a>
             <p className="flex items-center gap-1">
               ગુજરાતી ગૌરવ સાથે નિર્મિત <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline" />
             </p>

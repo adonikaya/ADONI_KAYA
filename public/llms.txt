@@ -1,0 +1,19 @@
+# ADONI KAYA (અડોણી કાયા)
+
+ADONI KAYA is a free Gujarati-language online memorial card creation platform.
+
+Primary website:
+https://adonikaya.github.io/ADONI_KAYA/
+
+Primary services:
+- Gujarati Shradhanjali cards
+- Gujarati Besna cards
+- Gujarati memorial and invitation card templates
+- Browser-based PNG, JPG, and PDF exports
+
+Public pages:
+- About: https://adonikaya.github.io/ADONI_KAYA/about/
+- Shradhanjali maker: https://adonikaya.github.io/ADONI_KAYA/shradhanjali-maker/
+- Besna maker: https://adonikaya.github.io/ADONI_KAYA/besna-card-maker/
+- Template gallery: https://adonikaya.github.io/ADONI_KAYA/gallery/
+- Privacy policy: https://adonikaya.github.io/ADONI_KAYA/privacy-policy/

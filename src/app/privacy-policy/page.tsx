@@ -127,8 +127,14 @@ export default function PrivacyPolicyPage() {
           સંપર્ક
         </h2>
         <p className="font-gujarati leading-8 text-gray-700" lang="gu">
-          આ નીતિ વિશે પ્રશ્ન હોય તો Instagram પર અડોણી કાયાનો સંપર્ક કરો:
+          આ નીતિ વિશે પ્રશ્ન હોય તો ઈમેલ અથવા Instagram દ્વારા અડોણી કાયા ટીમનો સંપર્ક કરો:
         </p>
+        <a
+          className="block text-brand-saffron underline"
+          href="mailto:adonikaya@gmail.com"
+        >
+          adonikaya@gmail.com
+        </a>
         <a
           className="text-brand-saffron underline"
           href="https://www.instagram.com/adoni_kaya/"

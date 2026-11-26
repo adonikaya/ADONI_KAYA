@@ -288,7 +288,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
   const currentDims = FORMAT_DIMENSIONS[selectedFormat];
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh_-_15rem_-_env(safe-area-inset-bottom))] min-h-0 max-w-7xl flex-col space-y-2 sm:space-y-6 lg:h-auto">
+    <div className="mx-auto flex h-auto min-h-0 max-w-7xl flex-col space-y-2 sm:space-y-6">
       {/* Top Header & Aspect Ratio Selector Bar */}
       <div className="flex shrink-0 flex-col items-center justify-between gap-2 rounded-2xl border border-brand-sand bg-white p-3 shadow-xs sm:gap-4 sm:p-5 lg:flex-row">
         <div>
@@ -323,13 +323,13 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         </div>
       </div>
 
-      {/* Mobile uses a fixed preview row and an independently scrolling settings row. */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,min(35dvh,60%))_minmax(0,1fr)] items-stretch gap-3 lg:grid-cols-12 lg:grid-rows-none lg:items-start lg:gap-8">
-        {/* LEFT COLUMN: Sticky Card Preview on Desktop */}
+      {/* Mobile follows document flow; desktop retains the side-by-side editor layout. */}
+      <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-12 lg:items-start lg:gap-8">
+        {/* The mobile preview stays visible while settings scroll below it. */}
         <div
-          className="flex h-full min-h-0 flex-col items-center lg:col-span-7 lg:h-auto lg:sticky lg:top-24"
+          className="sticky top-[10rem] z-30 flex min-w-0 flex-col items-center lg:top-24 lg:col-span-7 lg:sticky"
         >
-          <div className="relative flex h-full min-h-0 w-full flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:rounded-3xl sm:border-4 sm:p-6 lg:h-auto">
+          <div className="relative mx-auto flex aspect-[1.7/1] min-h-[180px] w-full max-w-[480px] flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:aspect-[1.8/1] sm:min-h-[200px] sm:rounded-3xl sm:border-4 sm:p-6 lg:mx-0 lg:aspect-auto lg:h-auto lg:min-h-0 lg:max-w-none">
             {/* Dimensions Pill Indicator */}
             <div className="mb-1 flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] text-white backdrop-blur-md sm:mb-3">
               <Smartphone className="h-3.5 w-3.5 text-brand-gold" />
@@ -365,7 +365,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         {/* RIGHT COLUMN: Scrollable Editing Controls Panel */}
         <div
           data-testid="editor-settings-panel"
-          className="min-h-0 space-y-6 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] lg:col-span-5 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-2"
+          className="h-[calc(100dvh-23rem-env(safe-area-inset-bottom))] min-h-[15rem] space-y-6 overflow-y-auto overscroll-y-auto [scrollbar-gutter:stable] lg:col-span-5 lg:h-auto lg:min-h-0 lg:max-h-[calc(100vh-7rem)] lg:overscroll-contain lg:pr-2"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {/* Download Action Card */}
@@ -461,7 +461,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                     setCustomHeading(e.target.value);
                     onUpdateDeceased?.({ heading: e.target.value });
                   }}
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs font-bold text-brand-maroon focus:outline-none focus:ring-2 focus:ring-brand-saffron"
+                  className="min-h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs font-bold text-brand-maroon focus:outline-none focus:ring-2 focus:ring-brand-saffron lg:min-h-0"
                 />
               </div>
 
@@ -476,7 +476,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                     setCustomName(e.target.value);
                     onUpdateDeceased?.({ name: e.target.value });
                   }}
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-saffron"
+                  className="min-h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-saffron lg:min-h-0"
                 />
               </div>
 
@@ -491,7 +491,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                     setCustomQuote(e.target.value);
                     onUpdateQuote?.(e.target.value);
                   }}
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs focus:outline-none focus:ring-2 focus:ring-brand-saffron"
+                  className="min-h-16 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-gujarati text-xs focus:outline-none focus:ring-2 focus:ring-brand-saffron lg:min-h-0"
                 />
               </div>
             </div>
@@ -517,7 +517,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                     key={shape.value}
                     type="button"
                     onClick={() => setPhotoFrameShape(shape.value)}
-                    className={`flex flex-col items-center gap-0.5 rounded-lg border py-2 px-1 text-center text-xs transition-all ${
+                    className={`flex min-h-14 flex-col items-center gap-0.5 rounded-lg border py-2 px-1 text-center text-xs transition-all lg:min-h-0 ${
                       photoFrameShape === shape.value
                         ? 'border-brand-saffron bg-brand-saffron/10 font-bold text-brand-maroon'
                         : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300'
@@ -538,7 +538,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
 
               <div className="space-y-2.5 rounded-xl border border-brand-sand bg-brand-cream/30 p-3.5">
                 {/* Setting 1: Procedural Diya Checkbox */}
-                <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer">
+                <label className="flex min-h-11 items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer lg:min-h-0">
                   <input
                     type="checkbox"
                     checked={deceased.includeDiya === true}
@@ -549,7 +549,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                 </label>
 
                 {/* Setting 2: Procedural Flower Checkbox */}
-                <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer">
+                <label className="flex min-h-11 items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer lg:min-h-0">
                   <input
                     type="checkbox"
                     checked={deceased.includeFlowers === true}
@@ -562,7 +562,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                 <div className="border-t border-brand-sand/50 my-1 pt-1" />
 
                 {/* Setting 3: Real Diya Assets Checkbox */}
-                <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-brand-maroon cursor-pointer">
+                <label className="flex min-h-11 items-center gap-2.5 font-gujarati text-xs font-bold text-brand-maroon cursor-pointer lg:min-h-0">
                   <input
                     type="checkbox"
                     checked={deceased.useRealDiyas === true}
@@ -593,7 +593,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                       setDiyaVerticalOffset(val);
                       onUpdateDeceased?.({ diyaVerticalOffset: val });
                     }}
-                    className="h-1.5 w-full accent-brand-saffron"
+                    className="h-10 w-full accent-brand-saffron lg:h-1.5"
                   />
                   <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 font-gujarati">
                     <span>-80 px (ઉપર)</span>
@@ -629,7 +629,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                       setDiyaHorizontalOffset(val);
                       onUpdateDeceased?.({ diyaHorizontalOffset: val });
                     }}
-                    className="h-1.5 w-full accent-brand-saffron"
+                    className="h-10 w-full accent-brand-saffron lg:h-1.5"
                   />
                   <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 font-gujarati">
                     <span>-60 px (ફોટોની નજીક)</span>
@@ -663,7 +663,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                       setDiyaScale(val);
                       onUpdateDeceased?.({ diyaScale: val });
                     }}
-                    className="h-1.5 w-full accent-brand-saffron"
+                    className="h-10 w-full accent-brand-saffron lg:h-1.5"
                   />
                   <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500 font-gujarati">
                     <span>60% (નાનો)</span>
@@ -701,7 +701,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={18}
                   value={headingFontSizeDelta}
                   onChange={(e) => setHeadingFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -717,7 +717,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={18}
                   value={nameFontSizeDelta}
                   onChange={(e) => setNameFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -733,7 +733,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={14}
                   value={dateFontSizeDelta}
                   onChange={(e) => setDateFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -749,7 +749,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={12}
                   value={tithiFontSizeDelta}
                   onChange={(e) => setTithiFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -765,7 +765,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={12}
                   value={quoteFontSizeDelta}
                   onChange={(e) => setQuoteFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -781,7 +781,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={10}
                   value={familyFontSizeDelta}
                   onChange={(e) => setFamilyFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -797,7 +797,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                   max={10}
                   value={footerFontSizeDelta}
                   onChange={(e) => setFooterFontSizeDelta(parseInt(e.target.value, 10))}
-                  className="h-1 w-full accent-brand-saffron"
+                  className="h-10 w-full accent-brand-saffron lg:h-1"
                 />
               </div>
 
@@ -834,7 +834,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
                 max={100}
                 value={verticalSpacing}
                 onChange={(event) => setVerticalSpacing(Number(event.target.value))}
-                className="mt-2 w-full accent-brand-saffron"
+                className="mt-2 h-10 w-full accent-brand-saffron lg:h-auto"
               />
               <div className="mt-1 flex justify-between text-[11px] text-gray-500 font-gujarati">
                 <span>0 px (સઘન)</span>
@@ -852,7 +852,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
 
             {/* SECTION 6: Watermark & Branding Setting */}
             <div className="border-t border-gray-100 pt-4">
-              <label className="flex items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer">
+              <label className="flex min-h-11 items-center gap-2.5 font-gujarati text-xs font-bold text-gray-800 cursor-pointer lg:min-h-0">
                 <input
                   type="checkbox"
                   checked={showBranding}
