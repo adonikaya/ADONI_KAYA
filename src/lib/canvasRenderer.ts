@@ -2360,49 +2360,21 @@ export async function renderCardToCanvas(
 
   // ── 11. Subtle Watermark Branding ─────────────────────────────────────────
   if (options.showBranding !== false) {
-    const watermarkText = 'By અડોણી કાયા';
-    const watermarkFontSize = 14;
-    const paddingX = 8;
-    const paddingY = 5;
-    const blurPadding = 6;
+    const watermarkText = 'By ADONI KAYA';
+    const watermarkFontSize = Math.max(20, Math.round(W * 0.02));
+    const paddingX = Math.round(watermarkFontSize * 0.7);
+    const paddingY = Math.round(watermarkFontSize * 0.3);
 
     ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.font = `600 ${watermarkFontSize}px "Noto Sans Gujarati", "Poppins", sans-serif`;
+    ctx.font = `700 ${watermarkFontSize}px "Poppins", sans-serif`;
     const badgeWidth = ctx.measureText(watermarkText).width + paddingX * 2;
     const badgeHeight = watermarkFontSize + paddingY * 2;
-    const badgeRight = W * 0.96;
+    const badgeLeft = (W - badgeWidth) / 2;
+    const badgeRight = badgeLeft + badgeWidth;
     const badgeBottom = H * 0.985;
-    const badgeLeft = badgeRight - badgeWidth;
     const badgeTop = badgeBottom - badgeHeight;
 
-    const blurredBackground = document.createElement('canvas');
-    blurredBackground.width = Math.ceil((badgeWidth + blurPadding * 2) * scale);
-    blurredBackground.height = Math.ceil((badgeHeight + blurPadding * 2) * scale);
-    const blurredContext = blurredBackground.getContext('2d');
-    if (blurredContext) {
-      blurredContext.filter = `blur(${4 * scale}px)`;
-      blurredContext.drawImage(
-        canvas,
-        (badgeLeft - blurPadding) * scale,
-        (badgeTop - blurPadding) * scale,
-        blurredBackground.width,
-        blurredBackground.height,
-        0,
-        0,
-        blurredBackground.width,
-        blurredBackground.height
-      );
-      ctx.drawImage(
-        blurredBackground,
-        badgeLeft - blurPadding,
-        badgeTop - blurPadding,
-        blurredBackground.width / scale,
-        blurredBackground.height / scale
-      );
-    }
-
-    const radius = 7;
+    const radius = badgeHeight / 2;
     ctx.beginPath();
     ctx.moveTo(badgeLeft + radius, badgeTop);
     ctx.lineTo(badgeRight - radius, badgeTop);
@@ -2414,22 +2386,16 @@ export async function renderCardToCanvas(
     ctx.lineTo(badgeLeft, badgeTop + radius);
     ctx.quadraticCurveTo(badgeLeft, badgeTop, badgeLeft + radius, badgeTop);
     ctx.closePath();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 1;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.86)';
+    ctx.fillStyle = 'rgba(255, 251, 242, 0.96)';
     ctx.fill();
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.strokeStyle = 'rgba(31, 41, 55, 0.22)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#B08A45';
+    ctx.lineWidth = Math.max(1, W * 0.0015);
     ctx.stroke();
 
-    ctx.fillStyle = '#111827';
+    ctx.fillStyle = '#4F2833';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(watermarkText, badgeLeft + badgeWidth / 2, badgeTop + badgeHeight / 2);
+    ctx.fillText(watermarkText, W / 2, badgeTop + badgeHeight / 2);
     ctx.restore();
   }
 

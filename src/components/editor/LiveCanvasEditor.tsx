@@ -329,7 +329,7 @@ export const LiveCanvasEditor: React.FC<LiveCanvasEditorProps> = ({
         <div
           className="sticky top-[10rem] z-30 flex min-w-0 flex-col items-center lg:top-24 lg:col-span-7 lg:sticky"
         >
-          <div className="relative mx-auto flex aspect-[1.7/1] min-h-[180px] w-full max-w-[480px] flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:aspect-[1.8/1] sm:min-h-[200px] sm:rounded-3xl sm:border-4 sm:p-6 lg:mx-0 lg:aspect-auto lg:h-auto lg:min-h-0 lg:max-w-none">
+          <div className="relative mx-auto flex aspect-[1/1] min-h-[300px] w-full max-w-[480px] flex-col items-center overflow-hidden rounded-2xl border-2 border-stone-800 bg-stone-900 p-3 shadow-2xl sm:aspect-[1.2/1] sm:min-h-[360px] sm:rounded-3xl sm:border-4 sm:p-6 lg:mx-0 lg:aspect-auto lg:h-auto lg:min-h-0 lg:max-w-none">
             {/* Dimensions Pill Indicator */}
             <div className="mb-1 flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] text-white backdrop-blur-md sm:mb-3">
               <Smartphone className="h-3.5 w-3.5 text-brand-gold" />
