@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Sparkles, Filter, Check, Eye, X, ChevronRight } from 'lucide-react';
 import { CardTemplate, TemplateCategory } from '../../lib/types';
 import { CARD_TEMPLATES } from '../../data/templates';
+import { toGujaratiDigits } from '../../lib/anniversaryCalculator';
 
 interface TemplateGalleryProps {
   initialType?: 'shradhanjali' | 'besna';
@@ -13,7 +14,7 @@ interface TemplateGalleryProps {
 }
 
 const CATEGORY_TABS: { id: string; name: string }[] = [
-  { id: 'all', name: 'બધા ટેમ્પલેટ્સ (૧૫૪)' },
+  { id: 'all', name: `બધા ટેમ્પલેટ્સ (${toGujaratiDigits(CARD_TEMPLATES.length)})` },
   { id: 'shradhanjali', name: 'શ્રદ્ધાંજલિ' },
   { id: 'peaceful-floral', name: 'પુષ્પાંજલિ / ફૂલ-હાર' },
   { id: 'temple-sacred', name: 'અગરબત્તી & દિવો' },
@@ -234,6 +235,40 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                       style={{ borderColor: template.theme.accentColor, backgroundColor: `${template.theme.accentColor}22` }}
                     />
                   )}
+                  {template.theme.panelColor && (
+                    <div
+                      className="absolute inset-x-4 bottom-10 rounded-xl border pointer-events-none"
+                      style={{
+                        top: template.theme.artworkStyle === 'forest-panel' ? '1.25rem' : '44%',
+                        backgroundColor: template.theme.panelColor,
+                        borderColor: `${template.theme.accentColor}55`,
+                      }}
+                    />
+                  )}
+                  {(template.theme.layoutVariant === 'arch-framed' || template.theme.artworkStyle === 'mughal-arch') && (
+                    <div
+                      className="absolute inset-x-5 top-5 bottom-12 rounded-t-full border pointer-events-none"
+                      style={{ borderColor: `${template.theme.accentColor}77` }}
+                    />
+                  )}
+                  {template.theme.artworkStyle === 'carved-pillars' && (
+                    <>
+                      <div className="absolute top-8 bottom-12 left-3.5 w-1.5 border pointer-events-none opacity-45" style={{ borderColor: template.theme.accentColor }} />
+                      <div className="absolute top-8 bottom-12 right-3.5 w-1.5 border pointer-events-none opacity-45" style={{ borderColor: template.theme.accentColor }} />
+                    </>
+                  )}
+                  {template.theme.artworkStyle === 'watercolour-floral' && (
+                    <>
+                      <div className="absolute -top-4 -left-4 w-20 h-20 rounded-full bg-rose-300/25 blur-md pointer-events-none" />
+                      <div className="absolute -bottom-4 -right-4 w-20 h-20 rounded-full bg-emerald-300/25 blur-md pointer-events-none" />
+                    </>
+                  )}
+                  {(template.theme.artworkStyle === 'jasmine-sides' || template.theme.artworkStyle === 'hanging-florals') && (
+                    <>
+                      <div className="absolute top-6 left-3 w-2 h-16 rounded-full border border-dashed opacity-50 pointer-events-none" style={{ borderColor: template.theme.accentColor }} />
+                      <div className="absolute top-6 right-3 w-2 h-16 rounded-full border border-dashed opacity-50 pointer-events-none" style={{ borderColor: template.theme.accentColor }} />
+                    </>
+                  )}
 
                   {/* Badges */}
                   <div className="w-full flex items-center justify-between z-10">
@@ -244,6 +279,10 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                     ) : template.isPopular ? (
                       <span className="bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">
                         લોકપ્રિય
+                      </span>
+                    ) : template.isNew ? (
+                      <span className="bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                        નવું
                       </span>
                     ) : (
                       <span className="bg-black/40 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-xs">
@@ -265,44 +304,83 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                   </div>
 
                   {/* Thumbnail Mock Elements */}
-                  <div className="my-auto flex flex-col items-center space-y-2 z-10 w-full px-4">
-                    <div
-                      className="text-xs font-bold font-serifGujarati tracking-wider"
-                      style={{ color: template.placeholders.header.color }}
-                    >
-                      {template.category === 'besna' ? 'પ્રાર્થના સભા / બેસણું' : 'ભાવપૂર્ણ શ્રદ્ધાંજલિ'}
+                  {template.theme.layoutVariant === 'split-horizontal' ? (
+                    <div className="my-auto grid grid-cols-5 items-center gap-2 z-10 w-full px-3">
+                      <div className="col-span-2 flex justify-center">
+                        <div
+                          className="w-14 border-2 flex items-center justify-center shadow-md"
+                          style={{
+                            aspectRatio: `1 / ${template.placeholders.photo.aspectRatio}`,
+                            borderRadius: '0.25rem',
+                            borderColor: template.placeholders.photo.borderColor,
+                            backgroundColor: '#374151',
+                          }}
+                        >
+                          <span className="text-[9px] text-white/80">ફોટો</span>
+                        </div>
+                      </div>
+                      <div className="col-span-3 text-left pl-2 border-l space-y-1" style={{ borderColor: `${template.theme.accentColor}55` }}>
+                        <div className="text-[10px] font-bold font-serifGujarati" style={{ color: template.placeholders.header.color }}>
+                          ભાવપૂર્ણ શ્રદ્ધાંજલિ
+                        </div>
+                        <div className="text-xs font-bold font-serifGujarati truncate" style={{ color: template.placeholders.deceasedName.color }}>
+                          સ્વર્ગસ્થનું નામ
+                        </div>
+                        <div className="h-1 w-16 rounded-full opacity-40" style={{ backgroundColor: template.theme.accentColor }} />
+                      </div>
                     </div>
-
-                    {/* Photo Frame Mock */}
+                  ) : (
                     <div
-                      className="w-16 border-2 flex items-center justify-center shadow-md my-1"
-                      style={{
-                        aspectRatio: `1 / ${template.placeholders.photo.aspectRatio}`,
-                        borderRadius:
-                          template.placeholders.photo.shape === 'circle' ||
-                          template.placeholders.photo.shape === 'oval' ||
-                          template.placeholders.photo.shape === 'ornate'
-                            ? '50%'
-                            : template.placeholders.photo.shape === 'rounded-rect' ? '18%' : '0.25rem',
-                        borderColor: template.placeholders.photo.borderColor,
-                        backgroundColor: '#374151',
-                      }}
+                      className={`my-auto flex flex-col z-10 w-full px-4 space-y-2 ${
+                        template.theme.layoutVariant === 'asymmetric-left' ? 'items-start text-left pl-6' : 'items-center text-center'
+                      }`}
                     >
-                      <span className="text-[10px] text-white/80">ફોટો</span>
-                    </div>
+                      <div
+                        className="text-xs font-bold font-serifGujarati tracking-wider"
+                        style={{ color: template.placeholders.header.color }}
+                      >
+                        {template.category === 'besna' ? 'પ્રાર્થના સભા / બેસણું' : 'ભાવપૂર્ણ શ્રદ્ધાંજલિ'}
+                      </div>
 
-                    {/* Name mock */}
-                    <div
-                      className="text-sm font-bold font-serifGujarati truncate w-full"
-                      style={{ color: template.placeholders.deceasedName.color }}
-                    >
-                      સ્વર્ગસ્થનું નામ
-                    </div>
+                      {/* Photo Frame Mock */}
+                      <div
+                        className="w-16 border-2 flex items-center justify-center shadow-md my-1 relative"
+                        style={{
+                          aspectRatio: `1 / ${template.placeholders.photo.aspectRatio}`,
+                          borderRadius:
+                            template.placeholders.photo.shape === 'circle' ||
+                            template.placeholders.photo.shape === 'oval' ||
+                            template.placeholders.photo.shape === 'ornate'
+                              ? '50%'
+                              : template.placeholders.photo.shape === 'rounded-rect' ? '18%' : '0.25rem',
+                          borderColor: template.placeholders.photo.borderColor,
+                          backgroundColor: '#374151',
+                        }}
+                      >
+                        <span className="text-[10px] text-white/80">ફોટો</span>
+                        {(template.theme.artworkStyle === 'lower-garland' || template.theme.artworkStyle === 'floral-crescent') && (
+                          <div
+                            className="absolute -bottom-1.5 inset-x-1 h-2 rounded-b-full border-b-4 opacity-80"
+                            style={{ borderColor: template.theme.accentColor }}
+                          />
+                        )}
+                      </div>
 
-                    {/* Date mock line */}
-                    <div className="h-1.5 w-24 bg-white/30 rounded-full my-0.5" />
-                    <div className="h-1 w-32 bg-white/20 rounded-full" />
-                  </div>
+                      {/* Name mock */}
+                      <div
+                        className={`font-bold font-serifGujarati truncate w-full ${
+                          template.theme.layoutVariant === 'editorial' ? 'text-base' : 'text-sm'
+                        }`}
+                        style={{ color: template.placeholders.deceasedName.color }}
+                      >
+                        સ્વર્ગસ્થનું નામ
+                      </div>
+
+                      {/* Date mock line */}
+                      <div className="h-1.5 w-24 bg-white/30 rounded-full my-0.5" />
+                      <div className="h-1 w-32 bg-white/20 rounded-full" />
+                    </div>
+                  )}
 
                   {/* Footer banner mock */}
                   <div
@@ -323,6 +401,9 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                       {template.gujaratiName}
                     </h4>
                     <p className="text-xs text-gray-500 font-mono mt-0.5">{template.name}</p>
+                    {template.description && (
+                      <p className="text-[11px] text-gray-600 mt-1 line-clamp-2">{template.description}</p>
+                    )}
                     <div className="flex flex-wrap gap-1 mt-2">
                       {template.tags.slice(0, 3).map((tag, i) => (
                         <span key={i} className="text-[10px] bg-brand-cream text-gray-600 px-1.5 py-0.5 rounded">

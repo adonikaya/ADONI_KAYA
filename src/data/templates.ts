@@ -2,6 +2,7 @@
 // Covering Shradhanjali, Besna, Shok Sabha, Tervi/Dashkriya, Punyatithi, and dedicated Rabari Style
 import { CardTemplate } from '../lib/types';
 import { createAdditionalTemplates, enhanceTemplateDesigns } from './templateDesigns';
+import { createPremiumShradhanjaliTemplates } from './premiumShradhanjaliTemplates';
 
 const BASE_TEMPLATES = enhanceTemplateDesigns([
   {
@@ -14609,4 +14610,5 @@ const BASE_TEMPLATES = enhanceTemplateDesigns([
 export const CARD_TEMPLATES: CardTemplate[] = [
   ...BASE_TEMPLATES,
   ...createAdditionalTemplates(BASE_TEMPLATES),
+  ...createPremiumShradhanjaliTemplates(BASE_TEMPLATES),
 ];

@@ -7,6 +7,7 @@ import { formatCardDate } from './anniversaryCalculator';
 import { formatTithi } from './tithi';
 import { normalizeIndianMobileNumber } from './mobileNumber';
 import { getPublicAssetUrl } from './publicAssets';
+import { drawTemplateArtwork, drawPhotoSurroundingArtwork } from './templateArtwork';
 
 export interface FontSizeAdjustments {
   heading?: number;
@@ -1466,6 +1467,7 @@ export async function renderCardToCanvas(
   }
 
   drawTemplateComposition(ctx, W, H, template.theme, deceased.includeFlowers === true);
+  drawTemplateArtwork(ctx, W, H, template.theme);
 
   // ── 3. Render Subtle Traditional Decorations ──
   // A. Floral Corners (Real Flower Assets)
@@ -1656,14 +1658,165 @@ export async function renderCardToCanvas(
   // Format-adaptive vertical spacing (Default: 28px)
   const formatFactor = H / 1350;
   const requestedGap = Math.max(0, Math.round((options.verticalSpacing ?? 28) * formatFactor));
+  const layoutVariant = template.theme.layoutVariant || 'classic-centered';
+  const isAsymmetric = layoutVariant === 'asymmetric-left';
+  const isSplitWithPhoto = layoutVariant === 'split-horizontal' && hasPhoto;
+  const contentX = isAsymmetric ? W * 0.115 : W / 2;
+  const contentAlign: CanvasTextAlign = isAsymmetric ? 'left' : 'center';
+
+  // Helper to format deceased display name with title
+  const formatDeceasedDisplayName = (): string => {
+    let displayName = deceased.name.trim();
+    const title = (deceased.title || '').trim();
+    if (title === 'નામ :') {
+      displayName = `નામ : ${displayName}`;
+    } else if (title && !displayName.startsWith(title)) {
+      displayName = `${title} ${displayName}`;
+    }
+    return displayName;
+  };
+
+  // Helper to draw fitted & wrapped deceased name without clipping
+  const drawFittedDeceasedName = (
+    x: number,
+    y: number,
+    maxW: number,
+    align: CanvasTextAlign
+  ): number => {
+    const nameStyle = template.placeholders.deceasedName;
+    const displayName = formatDeceasedDisplayName();
+    let fittedSize = effectiveFontSizes.name;
+    ctx.save();
+    ctx.fillStyle = nameStyle.color;
+    ctx.font = `bold ${fittedSize}px "Noto Serif Gujarati", "Rasa", Georgia, serif`;
+    const minSize = Math.max(22, fittedSize - 14);
+    while (ctx.measureText(displayName).width > maxW && fittedSize > minSize) {
+      fittedSize -= 1;
+      ctx.font = `bold ${fittedSize}px "Noto Serif Gujarati", "Rasa", Georgia, serif`;
+    }
+    ctx.textAlign = align;
+    ctx.textBaseline = 'alphabetic';
+    const bottomY = drawWrappedText(
+      ctx,
+      displayName,
+      x,
+      y + fittedSize,
+      maxW,
+      fittedSize * 1.22,
+      align === 'left' ? 'left' : 'center'
+    );
+    ctx.restore();
+    return bottomY + 8;
+  };
 
   // ── 7. Build sections array ───────────────────────────────────────────────
+  const splitHeroSection: FlowSection[] = isSplitWithPhoto
+    ? [
+        {
+          id: 'splitHero',
+          estimatedHeight: Math.max(photoFrameHeight, headerFontSize * 2 + nameFontSize * 1.6 + datesFontSize * 5) + 28,
+          isVisible: true,
+          renderFn: (y) => {
+            if (!loadedPhoto) return y;
+            const frame = template.placeholders.photo;
+            const splitFrameW = Math.min(frameWFromSize(frame.size, W), W * 0.30);
+            const splitFrameH = splitFrameW * getPhotoFrameAspectRatio(frame.shape, frame.aspectRatio);
+            const leftCx = W * 0.245;
+            const rightX = W * 0.47;
+            const rightMaxW = W * 0.45;
+
+            // Left: Photo Frame
+            const photoCenterY = y + splitFrameH / 2 + 6;
+            const adjustedFrame = { ...frame, size: (splitFrameW / W) * 100, x: 24.5, y: (photoCenterY / H) * 100 };
+            drawPhotoFrame(ctx, loadedPhoto, photoFrameAsset, adjustedFrame, W, H, deceased);
+            drawPhotoSurroundingArtwork(ctx, template.theme, leftCx, photoCenterY, splitFrameW, splitFrameH);
+
+            // Right: Heading + Name + Dates
+            let ry = y + 8;
+            const headerStyle = template.placeholders.header;
+            const defaultHeading = cardType === 'shradhanjali' ? 'ભાવપૂર્ણ શ્રદ્ધાંજલિ' : 'પ્રાર્થના સભા / બેસણું';
+            const headingText = (deceased.heading && deceased.heading.trim().length > 0) ? deceased.heading.trim() : defaultHeading;
+            let fittedH = effectiveFontSizes.heading;
+            ctx.save();
+            ctx.fillStyle = headerStyle.color;
+            ctx.font = `${headerStyle.fontWeight || 'bold'} ${fittedH}px "Noto Sans Gujarati", sans-serif`;
+            while (ctx.measureText(headingText).width > rightMaxW && fittedH > 16) {
+              fittedH -= 1;
+              ctx.font = `${headerStyle.fontWeight || 'bold'} ${fittedH}px "Noto Sans Gujarati", sans-serif`;
+            }
+            ry = drawWrappedText(ctx, headingText, rightX, ry + fittedH, rightMaxW, fittedH * 1.25, 'left');
+            ctx.restore();
+
+            // Subtle gold rule
+            ctx.save();
+            ctx.strokeStyle = template.theme.accentColor;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(rightX, ry + 2);
+            ctx.lineTo(rightX + rightMaxW * 0.55, ry + 2);
+            ctx.stroke();
+            ctx.restore();
+            ry += 16;
+
+            if (hasDeceasedName) {
+              ry = drawFittedDeceasedName(rightX, ry, rightMaxW, 'left');
+              ry += 6;
+            }
+
+            // Dates
+            ctx.save();
+            ctx.fillStyle = template.placeholders.datesBlock.color;
+            ctx.font = `500 ${effectiveFontSizes.dates}px "Noto Sans Gujarati", sans-serif`;
+            const lineH = effectiveFontSizes.dates * 1.48;
+            let dY = ry + effectiveFontSizes.dates;
+            const formattedDate = formatCardDate(deceased.deathDate, true);
+            const weekdayStr = deceased.weekday ? `(${deceased.weekday})` : '';
+            const fullDateLine = formattedDate ? `સ્વર્ગવાસ તા. : ${formattedDate} ${weekdayStr}`.trim() : '';
+            if (fullDateLine) {
+              dY = drawWrappedText(ctx, fullDateLine, rightX, dY, rightMaxW, lineH, 'left');
+            }
+            if (hasTithi) {
+              ctx.font = `500 ${effectiveFontSizes.tithi}px "Noto Sans Gujarati", sans-serif`;
+              dY = drawWrappedText(ctx, `તિથિ : ${tithiDisplay}`, rightX, dY, rightMaxW, lineH, 'left');
+              ctx.font = `500 ${effectiveFontSizes.dates}px "Noto Sans Gujarati", sans-serif`;
+            }
+            if (deceased.village && !hasFooter) {
+              const vText = deceased.talukaCity
+                ? `ગામ : ${deceased.village} (તા. ${deceased.talukaCity})`
+                : `ગામ : ${deceased.village}`;
+              dY = drawWrappedText(ctx, vText, rightX, dY, rightMaxW, lineH, 'left');
+            }
+            ctx.restore();
+
+            const blockBottom = Math.max(y + splitFrameH + 16, dY + 8);
+            // Vertical divider between left photo & right details
+            ctx.save();
+            ctx.strokeStyle = template.theme.accentColor;
+            ctx.globalAlpha = 0.4;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(W * 0.435, y + 6);
+            ctx.lineTo(W * 0.435, blockBottom - 6);
+            ctx.stroke();
+            ctx.restore();
+
+            return blockBottom + 6;
+          },
+        },
+      ]
+    : [];
+
+  function frameWFromSize(sizePct: number, width: number): number {
+    return (sizePct / 100) * width;
+  }
+
   const sections: FlowSection[] = [
-    // ── A. Main Heading (Always visible)
+    ...splitHeroSection,
+    // ── A. Main Heading (Always visible when not in split-with-photo)
     {
       id: 'header',
       estimatedHeight: headerFontSize * 2.4 + 26,
-      isVisible: true,
+      isVisible: !isSplitWithPhoto,
       renderFn: (y) => {
         const headerStyle = template.placeholders.header;
         const defaultHeading = cardType === 'shradhanjali' ? 'ભાવપૂર્ણ શ્રદ્ધાંજલિ' : 'પ્રાર્થના સભા / બેસણું';
@@ -1689,11 +1842,11 @@ export async function renderCardToCanvas(
         drawWrappedText(
           ctx,
           headingText,
-          W / 2,
+          contentX,
           y + fittedFontSize,
           maxHeadingWidth,
           fittedFontSize * 1.25,
-          'center',
+          isAsymmetric ? 'left' : 'center',
           true
         );
         ctx.restore();
@@ -1701,11 +1854,11 @@ export async function renderCardToCanvas(
         const headerBottom = drawWrappedText(
           ctx,
           headingText,
-          W / 2,
+          contentX,
           y + fittedFontSize,
           maxHeadingWidth,
           fittedFontSize * 1.25,
-          'center'
+          isAsymmetric ? 'left' : 'center'
         );
 
         // Decorative divider line below header with central motif diamond
@@ -1713,13 +1866,18 @@ export async function renderCardToCanvas(
         ctx.strokeStyle = template.theme.accentColor;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(W * 0.28, dividerY);
-        ctx.lineTo(W * 0.72, dividerY);
+        if (isAsymmetric) {
+          ctx.moveTo(contentX, dividerY);
+          ctx.lineTo(W * 0.55, dividerY);
+        } else {
+          ctx.moveTo(W * 0.28, dividerY);
+          ctx.lineTo(W * 0.72, dividerY);
+        }
         ctx.stroke();
 
         ctx.fillStyle = template.theme.accentColor;
         ctx.save();
-        ctx.translate(W / 2, dividerY);
+        ctx.translate(isAsymmetric ? contentX + 4 : W / 2, dividerY);
         ctx.rotate(Math.PI / 4);
         ctx.fillRect(-4.5, -4.5, 9, 9);
         ctx.restore();
@@ -1733,17 +1891,18 @@ export async function renderCardToCanvas(
     {
       id: 'photo',
       estimatedHeight: photoBlockHeight,
-      isVisible: hasPhoto,
+      isVisible: hasPhoto && !isSplitWithPhoto,
       renderFn: (y) => {
         if (!hasPhoto || !loadedPhoto) return y;
         const frame = template.placeholders.photo;
         const frameW = (frame.size / 100) * W;
         const frameH = frameW * getPhotoFrameAspectRatio(frame.shape, frame.aspectRatio);
         const cy = y + frameH / 2;
-        const cx = W / 2;
+        const cx = isAsymmetric ? W * 0.28 : W / 2;
 
-        const adjustedFrame = { ...frame, x: 50, y: (cy / H) * 100 };
+        const adjustedFrame = { ...frame, x: (cx / W) * 100, y: (cy / H) * 100 };
         drawPhotoFrame(ctx, loadedPhoto, photoFrameAsset, adjustedFrame, W, H, deceased);
+        drawPhotoSurroundingArtwork(ctx, template.theme, cx, cy, frameW, frameH);
 
         // Symmetrical Diya stands flanking the photograph on LEFT and RIGHT (Real Diya Assets or Procedural with Dissolve Effect)
         const diyaOffset = (options.diyaVerticalOffset ?? deceased.diyaVerticalOffset ?? 0);
@@ -1834,32 +1993,14 @@ export async function renderCardToCanvas(
       },
     },
 
-    // ── C. Deceased Person's Name (prominent and centered)
+    // ── C. Deceased Person's Name (prominent and centered or asymmetric)
     {
       id: 'deceasedName',
       estimatedHeight: nameFontSize + 14,
-      isVisible: hasDeceasedName,
+      isVisible: hasDeceasedName && !isSplitWithPhoto,
       renderFn: (y) => {
         if (!hasDeceasedName) return y;
-        const nameStyle = template.placeholders.deceasedName;
-        ctx.save();
-        ctx.fillStyle = nameStyle.color;
-        ctx.font = `bold ${effectiveFontSizes.name}px "Noto Serif Gujarati", "Rasa", Georgia, serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
-
-        // Title handling: support "નામ : [Name]" or "[Title] [Name]"
-        let displayName = deceased.name.trim();
-        const title = (deceased.title || '').trim();
-        if (title === 'નામ :') {
-          displayName = `નામ : ${displayName}`;
-        } else if (title && !displayName.startsWith(title)) {
-          displayName = `${title} ${displayName}`;
-        }
-
-        ctx.fillText(displayName, W / 2, y + effectiveFontSizes.name);
-        ctx.restore();
-        return y + effectiveFontSizes.name + 14;
+        return drawFittedDeceasedName(contentX, y, W * (isAsymmetric ? 0.77 : 0.86), contentAlign);
       },
     },
 
@@ -1880,13 +2021,13 @@ export async function renderCardToCanvas(
         }
         return lines * (datesFontSize * 1.5) + 12;
       })(),
-      isVisible: true,
+      isVisible: !isSplitWithPhoto,
       renderFn: (y) => {
         const datesStyle = template.placeholders.datesBlock;
         ctx.save();
         ctx.fillStyle = datesStyle.color;
         ctx.font = `500 ${effectiveFontSizes.dates}px "Noto Sans Gujarati", sans-serif`;
-        ctx.textAlign = 'center';
+        ctx.textAlign = contentAlign;
         ctx.textBaseline = 'alphabetic';
 
         const lineH = effectiveFontSizes.dates * 1.5;
@@ -1901,14 +2042,14 @@ export async function renderCardToCanvas(
             : '';
 
           if (fullDateLine) {
-            ctx.fillText(fullDateLine, W / 2, curY);
+            ctx.fillText(fullDateLine, contentX, curY);
             curY += lineH;
           }
 
           // Line 2: Optional Hindu Tithi (HIDE if empty!)
           if (hasTithi) {
             ctx.font = `500 ${effectiveFontSizes.tithi}px "Noto Sans Gujarati", sans-serif`;
-            ctx.fillText(`તિથિ : ${tithiDisplay}`, W / 2, curY);
+            ctx.fillText(`તિથિ : ${tithiDisplay}`, contentX, curY);
             curY += lineH;
             ctx.font = `500 ${effectiveFontSizes.dates}px "Noto Sans Gujarati", sans-serif`;
           }
@@ -1919,7 +2060,7 @@ export async function renderCardToCanvas(
               ? `ગામ : ${deceased.village}  (તા. ${deceased.talukaCity})`
               : `ગામ : ${deceased.village}`;
             ctx.font = `500 ${effectiveFontSizes.dates - 1}px "Noto Sans Gujarati", sans-serif`;
-            ctx.fillText(villageText, W / 2, curY);
+            ctx.fillText(villageText, contentX, curY);
             curY += lineH;
           }
         } else {
@@ -1998,11 +2139,11 @@ export async function renderCardToCanvas(
         const finalY = drawWrappedText(
           ctx,
           displayQuote,
-          W / 2,
+          contentX,
           y + effectiveFontSizes.quote,
-          quoteMaxWidth,
+          isAsymmetric ? W * 0.77 : quoteMaxWidth,
           effectiveFontSizes.quote * 1.45,
-          'center'
+          isAsymmetric ? 'left' : 'center'
         );
         ctx.restore();
         return finalY + 8;

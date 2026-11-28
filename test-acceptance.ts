@@ -85,8 +85,16 @@ assert(validateMobileNumbers([''])[0] === '', 'Empty optional mobile numbers are
 // ----------------------------------------------------
 console.log('--- 1. TEMPLATE COLLECTION VERIFICATION (100+ DISTINCT TEMPLATES) ---');
 assert(CARD_TEMPLATES.length >= 100, `Template collection contains 100+ templates: found ${CARD_TEMPLATES.length}`);
-assert(CARD_TEMPLATES.length === 154, `All 114 original and 40 new templates are available: found ${CARD_TEMPLATES.length}`);
-assert(CARD_TEMPLATES.slice(114).length === 40, `Exactly 40 additional templates are present: found ${CARD_TEMPLATES.slice(114).length}`);
+assert(CARD_TEMPLATES.length === 179, `All 114 original, 40 previous, and 25 new Shradhanjali templates are available: found ${CARD_TEMPLATES.length}`);
+assert(CARD_TEMPLATES.slice(114, 154).length === 40, `Exactly 40 previous additional templates are preserved: found ${CARD_TEMPLATES.slice(114, 154).length}`);
+assert(CARD_TEMPLATES.slice(154).length === 25, `Exactly 25 brand-new Shradhanjali templates are added: found ${CARD_TEMPLATES.slice(154).length}`);
+
+const new25 = CARD_TEMPLATES.slice(154);
+const new25ArtworkStyles = new Set(new25.map((t) => t.theme.artworkStyle).filter(Boolean));
+const new25LayoutVariants = new Set(new25.map((t) => t.theme.layoutVariant).filter(Boolean));
+assert(new25ArtworkStyles.size === 25, `All 25 new Shradhanjali templates have unique artwork styles: found ${new25ArtworkStyles.size}`);
+assert(new25LayoutVariants.size >= 5, `New 25 Shradhanjali templates span diverse layout variants: found ${new25LayoutVariants.size}`);
+assert(new25.every((t) => t.category !== 'besna' && resolveGallerySelection('shradhanjali', t.id, CARD_TEMPLATES)?.template.id === t.id), 'All 25 new templates resolve under Shradhanjali gallery flow and are excluded from Besna');
 
 // Unique IDs verification
 const ids = new Set<string>();

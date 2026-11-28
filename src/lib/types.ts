@@ -82,10 +82,46 @@ export interface TemplateDecorationAssets {
   flowers?: string;
 }
 
+export type TemplateLayoutVariant =
+  | 'classic-centered'
+  | 'split-horizontal'
+  | 'asymmetric-left'
+  | 'panel-card'
+  | 'editorial'
+  | 'arch-framed';
+
+export type TemplateArtworkStyle =
+  | 'jasmine-sides'
+  | 'roses-opposite'
+  | 'lilies-botanical'
+  | 'hanging-florals'
+  | 'lower-garland'
+  | 'mughal-arch'
+  | 'palace-frame'
+  | 'carved-pillars'
+  | 'parchment-scroll'
+  | 'temple-arch'
+  | 'sage-botanical'
+  | 'olive-asymmetric'
+  | 'eucalyptus-corners'
+  | 'forest-panel'
+  | 'floral-crescent'
+  | 'minimal-clean'
+  | 'modern-split'
+  | 'editorial-lines'
+  | 'beige-geometric'
+  | 'monochrome-heritage'
+  | 'golden-floral-corners'
+  | 'watercolour-floral'
+  | 'classic-double'
+  | 'arch-and-garden'
+  | 'luxury-maroon-gold';
+
 export interface CardTemplate {
   id: string;
   name: string;
   gujaratiName: string;
+  description?: string;
   category: TemplateCategory;
   tags: string[];
   thumbnailUrl: string;
@@ -97,11 +133,14 @@ export interface CardTemplate {
     bgColor: string;
     secondaryColor?: string;
     accentColor: string;
+    panelColor?: string;
     borderStyle: 'traditional' | 'rabari-embroidery' | 'royal-filigree' | 'floral-divine' | 'minimal-gold' | 'ornamental-arch' | 'sacred-mandap' | 'marigold-border';
     motif: 'om' | 'kalash' | 'diya' | 'swastik' | 'feather' | 'none';
     bgImageUrl?: string;
     decorations?: string[];
     composition?: TemplateComposition;
+    layoutVariant?: TemplateLayoutVariant;
+    artworkStyle?: TemplateArtworkStyle;
     decorationAssets?: TemplateDecorationAssets;
   };
   placeholders: {
